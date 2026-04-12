@@ -1,0 +1,38 @@
+{
+  "name": "rn-smart-sheet-example",
+  "version": "1.0.0",
+  "main": "node_modules/expo/AppEntry.js",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web"
+  },
+  "dependencies": {
+    "@expo/metro-runtime": "~5.0.0",
+    "expo": "~54.0.0",
+    "expo-asset": "~12.0.0",
+    "expo-constants": "~18.0.0",
+    "expo-font": "~14.0.0",
+    "expo-modules-core": "~3.0.0",
+    "expo-status-bar": "~3.0.0",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "react-native": "0.81.0",
+    "react-native-gesture-handler": "~2.21.0",
+    "react-native-keyboard-controller": "^1.15.0",
+    "react-native-reanimated": "~4.0.0",
+    "react-native-safe-area-context": "5.0.0",
+    "react-native-screens": "~4.4.0",
+    "react-native-web": "~0.20.0",
+    "react-native-worklets": "^0.7.4",
+    "rn-smart-sheet": "file:.."
+  },
+  "devDependencies": {
+    "@babel/core": "^7.25.0",
+    "@types/react": "~19.1.0",
+    "babel-plugin-module-resolver": "^5.0.2",
+    "typescript": "^5.3.0"
+  },
+  "private": true
+}
