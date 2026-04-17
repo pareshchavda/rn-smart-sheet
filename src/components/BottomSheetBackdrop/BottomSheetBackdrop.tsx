@@ -1,8 +1,6 @@
 import React, { memo } from 'react';
-import { StyleSheet, Pressable } from 'react-native';
-import Animated, { useAnimatedStyle } from 'react-native-reanimated';
+import { StyleSheet, Pressable, Animated } from 'react-native';
 import type { BottomSheetBackdropProps } from '../../types';
-import { interpolate } from '../../utils/animations';
 
 const BottomSheetBackdropComponent: React.FC<BottomSheetBackdropProps> = ({
     animatedIndex,
@@ -13,26 +11,20 @@ const BottomSheetBackdropComponent: React.FC<BottomSheetBackdropProps> = ({
     appearsOnIndex = 0,
     pressBehavior = 'close',
 }) => {
-    const animatedStyle = useAnimatedStyle(() => {
-        const backdropOpacity = interpolate(
-            animatedIndex.value,
-            [disappearsOnIndex, appearsOnIndex],
-            [0, opacity]
-        );
-
-        return {
-            opacity: backdropOpacity,
-            pointerEvents: animatedIndex.value <= disappearsOnIndex ? 'none' : 'auto',
-        };
-    });
+    const animatedStyle = {
+        opacity: animatedIndex.interpolate({
+            inputRange: [disappearsOnIndex, appearsOnIndex],
+            outputRange: [0, opacity],
+            extrapolate: 'clamp'
+        }),
+    };
 
     const handlePress = () => {
-        // This will be connected to the bottom sheet context
-        // For now, it's a placeholder
+        // Will connect to BS
     };
 
     return (
-        <Animated.View style={[styles.container, style, animatedStyle]}>
+        <Animated.View style={[styles.container, style, animatedStyle]} pointerEvents="box-none">
             {!enableTouchThrough && pressBehavior !== 'none' && (
                 <Pressable style={StyleSheet.absoluteFill} onPress={handlePress} />
             )}

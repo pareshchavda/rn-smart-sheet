@@ -21,11 +21,7 @@
         "noUnusedParameters": true,
         "noImplicitReturns": true,
         "noFallthroughCasesInSwitch": true,
-        "types": [
-            "react-native-reanimated",
-            "react-native-gesture-handler",
-            "react-native-keyboard-controller"
-        ]
+        "types": []
     },
     "include": [
         "src/**/*"

@@ -7,12 +7,12 @@ import React, {
     useRef,
 } from 'react';
 import {
+    Animated,
     Dimensions,
     StyleSheet,
     View,
     type NativeSyntheticEvent,
 } from 'react-native';
-import { useSharedValue } from 'react-native-reanimated';
 import type { BottomSheetMethods, BottomSheetProps } from '../../types';
 import { BottomSheetProvider } from '../../contexts/BottomSheetContext';
 import { normalizeSnapPoints } from '../../utils/snapPoints';
@@ -24,8 +24,6 @@ import NativeSmartSheetView, {
     type SheetChangeEvent,
     type SheetPositionEvent,
 } from '../../specs/SmartSheetNativeComponent';
-import { isNativeSheetViewAvailable } from '../../utils/native';
-import { BottomSheetLegacy } from './BottomSheetLegacy';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -50,14 +48,15 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
             onAnimate,
             enableGesture = true,
             overDragResistanceFactor = 0,
-            useNativeDriver = true,
         },
         ref
     ) => {
-        const legacyRef = useRef<BottomSheetMethods>(null);
         const nativeRef = useRef<React.ElementRef<typeof NativeSmartSheetView>>(null);
-        const animatedIndex = useSharedValue(index);
-        const animatedPosition = useSharedValue(SCREEN_HEIGHT);
+        
+        // Using RN's Animated instead of Reanimated
+        const animatedIndex = useRef(new Animated.Value(index)).current;
+        const animatedPosition = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
+        
         const currentIndexRef = useRef(index);
 
         const normalizedSnapPoints = useMemo(
@@ -65,71 +64,51 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
             [snapPoints]
         );
 
-        const shouldUseNativeDriver = useMemo(
-            () => useNativeDriver && isNativeSheetViewAvailable(),
-            [useNativeDriver]
-        );
-
         useEffect(() => {
-            animatedPosition.value =
-                index >= 0 && normalizedSnapPoints[index] != null
-                    ? SCREEN_HEIGHT - normalizedSnapPoints[index]
-                    : SCREEN_HEIGHT;
-        }, [animatedPosition, index, normalizedSnapPoints]);
+            if (index >= 0 && normalizedSnapPoints[index] != null) {
+                animatedPosition.setValue(SCREEN_HEIGHT - normalizedSnapPoints[index]);
+                animatedIndex.setValue(index);
+            } else {
+                animatedPosition.setValue(SCREEN_HEIGHT);
+                animatedIndex.setValue(-1);
+            }
+        }, [index, normalizedSnapPoints, animatedPosition, animatedIndex]);
 
         const snapToIndex = useCallback((targetIndex: number) => {
-            if (shouldUseNativeDriver && nativeRef.current) {
+            if (nativeRef.current) {
                 Commands.snapToIndex(nativeRef.current, targetIndex);
-                return;
             }
-
-            legacyRef.current?.snapToIndex(targetIndex);
-        }, [shouldUseNativeDriver]);
+        }, []);
 
         const snapToPosition = useCallback((position: number) => {
-            if (shouldUseNativeDriver && nativeRef.current) {
+            if (nativeRef.current) {
                 Commands.snapToPosition(nativeRef.current, position);
-                return;
             }
-
-            legacyRef.current?.snapToPosition(position);
-        }, [shouldUseNativeDriver]);
+        }, []);
 
         const expand = useCallback(() => {
-            if (shouldUseNativeDriver && nativeRef.current) {
+            if (nativeRef.current) {
                 Commands.expand(nativeRef.current);
-                return;
             }
-
-            legacyRef.current?.expand();
-        }, [shouldUseNativeDriver]);
+        }, []);
 
         const collapse = useCallback(() => {
-            if (shouldUseNativeDriver && nativeRef.current) {
+            if (nativeRef.current) {
                 Commands.collapse(nativeRef.current);
-                return;
             }
-
-            legacyRef.current?.collapse();
-        }, [shouldUseNativeDriver]);
+        }, []);
 
         const close = useCallback(() => {
-            if (shouldUseNativeDriver && nativeRef.current) {
+            if (nativeRef.current) {
                 Commands.close(nativeRef.current);
-                return;
             }
-
-            legacyRef.current?.close();
-        }, [shouldUseNativeDriver]);
+        }, []);
 
         const forceClose = useCallback(() => {
-            if (shouldUseNativeDriver && nativeRef.current) {
+            if (nativeRef.current) {
                 Commands.forceClose(nativeRef.current);
-                return;
             }
-
-            legacyRef.current?.forceClose();
-        }, [shouldUseNativeDriver]);
+        }, []);
 
         useImperativeHandle(
             ref,
@@ -178,8 +157,8 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
         const handleSheetChange = useCallback(
             (event: NativeSyntheticEvent<SheetChangeEvent>) => {
                 const nextIndex = event.nativeEvent.index;
-                animatedIndex.value = nextIndex;
-                animatedPosition.value = event.nativeEvent.position;
+                animatedIndex.setValue(nextIndex);
+                animatedPosition.setValue(event.nativeEvent.position);
                 currentIndexRef.current = nextIndex;
                 onChange?.(nextIndex);
             },
@@ -197,38 +176,10 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
 
         const handlePositionChange = useCallback(
             (event: NativeSyntheticEvent<SheetPositionEvent>) => {
-                animatedPosition.value = event.nativeEvent.position;
+                animatedPosition.setValue(event.nativeEvent.position);
             },
             [animatedPosition]
         );
-
-        if (!shouldUseNativeDriver) {
-            return (
-                <BottomSheetLegacy
-                    ref={legacyRef}
-                    snapPoints={snapPoints}
-                    index={index}
-                    enablePanDownToClose={enablePanDownToClose}
-                    animationConfig={animationConfig}
-                    keyboardBehavior={keyboardBehavior}
-                    keyboardDismissMode={keyboardDismissMode}
-                    enableHandleComponent={enableHandleComponent}
-                    handleComponent={CustomHandle}
-                    backdropComponent={CustomBackdrop}
-                    backgroundStyle={backgroundStyle}
-                    handleStyle={handleStyle}
-                    handleIndicatorStyle={handleIndicatorStyle}
-                    style={style}
-                    onChange={onChange}
-                    onAnimate={onAnimate}
-                    enableGesture={enableGesture}
-                    overDragResistanceFactor={overDragResistanceFactor}
-                    useNativeDriver={useNativeDriver}
-                >
-                    {children}
-                </BottomSheetLegacy>
-            );
-        }
 
         return (
             <BottomSheetProvider value={contextValue}>
@@ -247,9 +198,9 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
                     enablePanDownToClose={enablePanDownToClose}
                     enableGesture={enableGesture}
                     overDragResistanceFactor={overDragResistanceFactor}
-                    keyboardBehavior={keyboardBehavior}
-                    keyboardDismissMode={keyboardDismissMode}
-                    springConfig={animationConfig}
+                    keyboardBehavior={keyboardBehavior as any}
+                    keyboardDismissMode={keyboardDismissMode as any}
+                    springConfig={animationConfig as any}
                     onSheetChange={handleSheetChange}
                     onSheetAnimate={handleSheetAnimate}
                     onSheetPositionChange={handlePositionChange}

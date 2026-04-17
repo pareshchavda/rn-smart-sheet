@@ -75,4 +75,4 @@ export const Commands = codegenNativeCommands<NativeCommands>({
     ],
 });
 
-export default codegenNativeComponent<NativeProps>(COMPONENT_NAME);
+export default codegenNativeComponent<NativeProps>('RNSmartSheetView');

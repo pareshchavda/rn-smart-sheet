@@ -1,21 +1,19 @@
 import React, { memo } from 'react';
-import { StyleSheet, View } from 'react-native';
-import Animated, { useAnimatedStyle } from 'react-native-reanimated';
+import { StyleSheet, View, Animated } from 'react-native';
 import type { BottomSheetHandleProps } from '../../types';
-import { interpolate } from '../../utils/animations';
 
 const BottomSheetHandleComponent: React.FC<BottomSheetHandleProps> = ({
     style,
     indicatorStyle,
     animatedIndex,
 }) => {
-    const animatedStyle = useAnimatedStyle(() => {
-        const opacity = interpolate(animatedIndex.value, [-1, 0, 1], [0, 1, 1]);
-
-        return {
-            opacity,
-        };
-    });
+    const animatedStyle = {
+        opacity: animatedIndex.interpolate({
+            inputRange: [-1, 0, 1],
+            outputRange: [0, 1, 1],
+            extrapolate: 'clamp'
+        })
+    };
 
     return (
         <Animated.View style={[styles.container, style, animatedStyle]}>
