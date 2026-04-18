@@ -15,6 +15,7 @@ const BottomSheetScrollViewComponent = forwardRef<
             bounces={true}
             showsVerticalScrollIndicator={true}
             nestedScrollEnabled={true}
+            keyboardShouldPersistTaps="handled"
         >
             {children}
         </ScrollView>

@@ -4,29 +4,37 @@ import type { BottomSheetBackdropProps } from '../../types';
 
 const BottomSheetBackdropComponent: React.FC<BottomSheetBackdropProps> = ({
     animatedIndex,
+    animatedPosition,
+    index = -1,
     style,
     opacity = 0.5,
     enableTouchThrough = false,
     disappearsOnIndex = -1,
     appearsOnIndex = 0,
     pressBehavior = 'close',
+    onPress,
 }) => {
+    const isHidden = index <= disappearsOnIndex;
+    const safeInputRange =
+        disappearsOnIndex === appearsOnIndex
+            ? [disappearsOnIndex, appearsOnIndex + 0.01]
+            : [disappearsOnIndex, appearsOnIndex];
+
     const animatedStyle = {
         opacity: animatedIndex.interpolate({
-            inputRange: [disappearsOnIndex, appearsOnIndex],
+            inputRange: safeInputRange,
             outputRange: [0, opacity],
-            extrapolate: 'clamp'
+            extrapolate: 'clamp',
         }),
     };
 
-    const handlePress = () => {
-        // Will connect to BS
-    };
-
     return (
-        <Animated.View style={[styles.container, style, animatedStyle]} pointerEvents="box-none">
+        <Animated.View
+            style={[styles.container, style, animatedStyle]}
+            pointerEvents={enableTouchThrough || isHidden ? 'none' : 'auto'}
+        >
             {!enableTouchThrough && pressBehavior !== 'none' && (
-                <Pressable style={StyleSheet.absoluteFill} onPress={handlePress} />
+                <Pressable style={StyleSheet.absoluteFill} onPress={onPress} />
             )}
         </Animated.View>
     );

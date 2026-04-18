@@ -10,7 +10,6 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { KeyboardProvider } from 'react-native-keyboard-controller';
 import {
     BottomSheet,
     BottomSheetView,
@@ -35,12 +34,21 @@ const App = () => {
     const simpleSheetRef = useRef<BottomSheetMethods>(null);
     const scrollSheetRef = useRef<BottomSheetMethods>(null);
     const keyboardSheetRef = useRef<BottomSheetMethods>(null);
+    const dynamicSheetRef = useRef<BottomSheetMethods>(null);
 
     const [inputValue, setInputValue] = useState('');
+    const [dynamicItems, setDynamicItems] = useState(['Initial Content']);
+
+    const addDynamicItem = () => {
+        setDynamicItems(prev => [...prev, `New Item ${prev.length + 1}`]);
+    };
+
+    const removeDynamicItem = () => {
+        setDynamicItems(prev => prev.slice(0, -1));
+    };
 
     return (
         <GestureHandlerRootView style={styles.container}>
-            <KeyboardProvider>
                 <StatusBar style="dark" />
                 <SafeAreaView style={styles.container}>
                     <ScrollView contentContainerStyle={styles.content}>
@@ -61,19 +69,28 @@ const App = () => {
                             <View style={styles.buttonRow}>
                                 <TouchableOpacity
                                     style={styles.btn}
-                                    onPress={() => simpleSheetRef.current?.expand()}
+                                    onPress={() => {
+                                        console.log('App: Open button pressed');
+                                        simpleSheetRef.current?.expand();
+                                    }}
                                 >
                                     <Text style={styles.btnText}>Open</Text>
                                 </TouchableOpacity>
                                 <TouchableOpacity
                                     style={[styles.btn, styles.btnOutline]}
-                                    onPress={() => simpleSheetRef.current?.snapToIndex(1)}
+                                    onPress={() => {
+                                        console.log('App: Snap 50% button pressed');
+                                        simpleSheetRef.current?.snapToIndex(1);
+                                    }}
                                 >
                                     <Text style={[styles.btnText, styles.btnOutlineText]}>Snap 50%</Text>
                                 </TouchableOpacity>
                                 <TouchableOpacity
                                     style={[styles.btn, styles.btnDanger]}
-                                    onPress={() => simpleSheetRef.current?.close()}
+                                    onPress={() => {
+                                        console.log('App: Close button pressed');
+                                        simpleSheetRef.current?.close();
+                                    }}
                                 >
                                     <Text style={styles.btnText}>Close</Text>
                                 </TouchableOpacity>
@@ -111,6 +128,22 @@ const App = () => {
                                 onPress={() => keyboardSheetRef.current?.expand()}
                             >
                                 <Text style={styles.btnText}>Open Keyboard Sheet</Text>
+                            </TouchableOpacity>
+                        </View>
+                        {/* Dynamic Height Bottom Sheet */}
+                        <View style={styles.card}>
+                            <View style={styles.cardHeader}>
+                                <Text style={styles.cardBadge}>04</Text>
+                                <Text style={styles.cardTitle}>Dynamic Height</Text>
+                            </View>
+                            <Text style={styles.cardDesc}>
+                                Uses native measurement to wrap height automatically
+                            </Text>
+                            <TouchableOpacity
+                                style={styles.btn}
+                                onPress={() => dynamicSheetRef.current?.expand()}
+                            >
+                                <Text style={styles.btnText}>Open Dynamic Sheet</Text>
                             </TouchableOpacity>
                         </View>
                     </ScrollView>
@@ -201,8 +234,52 @@ const App = () => {
                             </TouchableOpacity>
                         </BottomSheetView>
                     </BottomSheet>
+                    {/* Dynamic Height Bottom Sheet */}
+                    <BottomSheet
+                        ref={dynamicSheetRef}
+                        index={-1}
+                        enableDynamicSizing={true}
+                        backdropComponent={CustomBackdrop}
+                    >
+                        <BottomSheetView style={styles.sheetContent}>
+                            <Text style={styles.sheetTitle}>Dynamic Height</Text>
+                            <Text style={styles.sheetText}>
+                                This sheet automatically adjusts its height based on its content using native measurement.
+                            </Text>
+                            
+                            <View style={styles.dynamicList}>
+                                {dynamicItems.map((item, index) => (
+                                    <View key={index} style={styles.dynamicItem}>
+                                        <Text style={styles.dynamicItemText}>{item}</Text>
+                                    </View>
+                                ))}
+                            </View>
+
+                            <View style={styles.buttonRow}>
+                                <TouchableOpacity
+                                    style={styles.btn}
+                                    onPress={addDynamicItem}
+                                >
+                                    <Text style={styles.btnText}>Add Item</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={[styles.btn, styles.btnOutline]}
+                                    onPress={removeDynamicItem}
+                                    disabled={dynamicItems.length === 0}
+                                >
+                                    <Text style={[styles.btnText, styles.btnOutlineText]}>Remove</Text>
+                                </TouchableOpacity>
+                            </View>
+                            
+                            <TouchableOpacity
+                                style={[styles.btn, styles.btnDanger, { marginTop: 12 }]}
+                                onPress={() => dynamicSheetRef.current?.close()}
+                            >
+                                <Text style={styles.btnText}>Close</Text>
+                            </TouchableOpacity>
+                        </BottomSheetView>
+                    </BottomSheet>
                 </SafeAreaView>
-            </KeyboardProvider>
         </GestureHandlerRootView>
     );
 };
@@ -342,6 +419,22 @@ const styles = StyleSheet.create({
         textAlignVertical: 'top',
         marginBottom: 16,
         color: '#1E293B',
+    },
+    dynamicList: {
+        marginBottom: 16,
+    },
+    dynamicItem: {
+        backgroundColor: '#F1F5F9',
+        padding: 12,
+        borderRadius: 8,
+        marginBottom: 8,
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+    },
+    dynamicItemText: {
+        color: '#334155',
+        fontSize: 14,
+        fontWeight: '500',
     },
 });
 

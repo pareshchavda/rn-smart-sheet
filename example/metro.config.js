@@ -29,21 +29,9 @@ config.resolver.extraNodeModules = {
     react: path.resolve(projectRoot, 'node_modules/react'),
     'react-dom': path.resolve(projectRoot, 'node_modules/react-dom'),
     'react-native': path.resolve(projectRoot, 'node_modules/react-native'),
-    'react-native-reanimated': path.resolve(
-        projectRoot,
-        'node_modules/react-native-reanimated'
-    ),
     'react-native-gesture-handler': path.resolve(
         projectRoot,
         'node_modules/react-native-gesture-handler'
-    ),
-    'react-native-keyboard-controller': path.resolve(
-        projectRoot,
-        'node_modules/react-native-keyboard-controller'
-    ),
-    'react-native-worklets': path.resolve(
-        projectRoot,
-        'node_modules/react-native-worklets'
     ),
 };
 

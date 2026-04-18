@@ -29,14 +29,18 @@ export interface BottomSheetMethods {
 
 export interface BottomSheetProps {
     useNativeDriver?: boolean;
-    snapPoints: SnapPoint[];
+    snapPoints?: SnapPoint[];
     index?: number;
     enablePanDownToClose?: boolean;
     enableDynamicSizing?: boolean;
+    maxDynamicContentSize?: number;
     animationConfig?: AnimationConfig;
     keyboardBehavior?: KeyboardBehavior;
     keyboardDismissMode?: KeyboardDismissMode;
     keyboardBlurBehavior?: 'none' | 'restore';
+    keyboardOffset?: number;
+    topInset?: number;
+    bottomInset?: number;
     enableHandleComponent?: boolean;
     handleComponent?: ComponentType<BottomSheetHandleProps>;
     backdropComponent?: ComponentType<BottomSheetBackdropProps> | null;
@@ -55,12 +59,14 @@ export interface BottomSheetProps {
 export interface BottomSheetBackdropProps {
     animatedIndex: Animated.Value;
     animatedPosition: Animated.Value;
+    index?: number;
     style?: StyleProp<ViewStyle>;
     opacity?: number;
     enableTouchThrough?: boolean;
     disappearsOnIndex?: number;
     appearsOnIndex?: number;
     pressBehavior?: 'none' | 'close' | 'collapse';
+    onPress?: () => void;
 }
 
 export interface BottomSheetHandleProps {

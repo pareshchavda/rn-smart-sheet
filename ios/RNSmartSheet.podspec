@@ -6,7 +6,7 @@ Pod::Spec.new do |s|
   s.homepage     = "https://example.com"
   s.author       = "RNSmartSheet"
   s.source       = { :git => "", :tag => s.version.to_s }
-  s.platforms    = { :ios => "13.4" }
+  s.platforms    = { :ios => "15.0" }
   s.source_files = "ios/**/*.{h,m,mm,swift}"
 
   install_modules_dependencies(s)

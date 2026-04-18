@@ -96,6 +96,7 @@ class RNSmartSheetViewProps final : public ViewProps {
   bool enablePanDownToClose{true};
   bool enableGesture{true};
   double overDragResistanceFactor{0.0};
+  bool enableDynamicSizing{false};
   std::string keyboardBehavior{"interactive"};
   std::string keyboardDismissMode{"on-drag"};
   RNSmartSheetViewSpringConfigStruct springConfig{};

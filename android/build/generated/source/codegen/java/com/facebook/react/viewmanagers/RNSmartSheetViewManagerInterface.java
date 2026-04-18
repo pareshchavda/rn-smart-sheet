@@ -21,6 +21,7 @@ public interface RNSmartSheetViewManagerInterface<T extends View> extends ViewMa
   void setEnablePanDownToClose(T view, boolean value);
   void setEnableGesture(T view, boolean value);
   void setOverDragResistanceFactor(T view, double value);
+  void setEnableDynamicSizing(T view, boolean value);
   void setKeyboardBehavior(T view, @Nullable String value);
   void setKeyboardDismissMode(T view, @Nullable String value);
   void setSpringConfig(T view, @Nullable ReadableMap value);

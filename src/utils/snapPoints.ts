@@ -23,7 +23,7 @@ export const normalizeSnapPoint = (snapPoint: SnapPoint): number => {
 /**
  * Normalize all snap points to pixel values
  */
-export const normalizeSnapPoints = (snapPoints: SnapPoint[]): number[] => {
+export const normalizeSnapPoints = (snapPoints: SnapPoint[] = []): number[] => {
     return snapPoints.map(normalizeSnapPoint).sort((a, b) => a - b);
 };
 

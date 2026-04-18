@@ -41,6 +41,7 @@ export interface NativeProps extends ViewProps {
     enablePanDownToClose?: WithDefault<boolean, true>;
     enableGesture?: WithDefault<boolean, true>;
     overDragResistanceFactor?: WithDefault<Double, 0>;
+    enableDynamicSizing?: WithDefault<boolean, false>;
     keyboardBehavior?: WithDefault<string, 'interactive'>;
     keyboardDismissMode?: WithDefault<string, 'on-drag'>;
     springConfig?: SpringConfig;

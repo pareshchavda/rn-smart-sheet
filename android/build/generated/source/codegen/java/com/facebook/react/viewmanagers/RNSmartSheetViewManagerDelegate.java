@@ -39,6 +39,9 @@ public class RNSmartSheetViewManagerDelegate<T extends View, U extends BaseViewM
       case "overDragResistanceFactor":
         mViewManager.setOverDragResistanceFactor(view, value == null ? 0f : ((Double) value).doubleValue());
         break;
+      case "enableDynamicSizing":
+        mViewManager.setEnableDynamicSizing(view, value == null ? false : (boolean) value);
+        break;
       case "keyboardBehavior":
         mViewManager.setKeyboardBehavior(view, value == null ? "interactive" : (String) value);
         break;
