@@ -4,7 +4,6 @@ import type { BottomSheetBackdropProps } from '../../types';
 
 const BottomSheetBackdropComponent: React.FC<BottomSheetBackdropProps> = ({
     animatedIndex,
-    animatedPosition,
     index = -1,
     style,
     opacity = 0.5,
@@ -44,6 +43,7 @@ const styles = StyleSheet.create({
     container: {
         ...StyleSheet.absoluteFillObject,
         backgroundColor: '#000000',
+        zIndex: 998,
     },
 });
 

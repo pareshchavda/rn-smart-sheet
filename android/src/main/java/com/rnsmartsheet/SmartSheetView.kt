@@ -23,13 +23,14 @@ class SmartSheetView(context: Context) : CoordinatorLayout(context) {
     private var isDynamicSizingEnabled = false
     private var keyboardBehavior = "interactive"
     private var keyboardHeight = 0
+    private var snapPoints: List<Double> = emptyList()
 
     init {
         val params = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
         params.behavior = behavior
         
         behavior.isHideable = true
-        behavior.skipCollapsed = true
+        behavior.skipCollapsed = false // Allow collapsed state
         behavior.state = BottomSheetBehavior.STATE_HIDDEN
         sheetContainer.layoutParams = params
         
@@ -42,24 +43,59 @@ class SmartSheetView(context: Context) : CoordinatorLayout(context) {
         setupBehaviorListeners()
         setupInsetsListener()
         setupLayoutListener()
+        setupTouchListener()
+    }
+
+    private fun setupTouchListener() {
+        this.setOnTouchListener { _, event ->
+            if (event.action == android.view.MotionEvent.ACTION_DOWN) {
+                if (behavior.state != BottomSheetBehavior.STATE_HIDDEN) {
+                    // Check if touch is outside the sheet container
+                    val location = IntArray(2)
+                    sheetContainer.getLocationOnScreen(location)
+                    val sheetX = location[0]
+                    val sheetY = location[1]
+                    val sheetWidth = sheetContainer.width
+                    val sheetHeight = sheetContainer.height
+
+                    if (event.rawX < sheetX || event.rawX > sheetX + sheetWidth ||
+                        event.rawY < sheetY || event.rawY > sheetY + sheetHeight) {
+                        
+                        // Click is outside the sheet, close it
+                        behavior.state = BottomSheetBehavior.STATE_HIDDEN
+                        return@setOnTouchListener true
+                    }
+                }
+            }
+            false
+        }
     }
 
     private fun setupBehaviorListeners() {
+        var lastIndex = -1
         behavior.addBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
             override fun onStateChanged(bottomSheet: View, newState: Int) {
                 Log.d("SmartSheetView", "onStateChanged: $newState")
                 val index = when (newState) {
-                    BottomSheetBehavior.STATE_EXPANDED -> 1
+                    BottomSheetBehavior.STATE_EXPANDED -> if (snapPoints.size >= 3) 2 else if (snapPoints.size == 2) 1 else 0
+                    BottomSheetBehavior.STATE_HALF_EXPANDED -> 1
                     BottomSheetBehavior.STATE_COLLAPSED -> 0
                     BottomSheetBehavior.STATE_HIDDEN -> -1
                     else -> -2
                 }
 
-                if (index != -2) {
+                if (index != -2 && index != lastIndex) {
+                    // Emit animate event
+                    emitEvent("topSheetAnimate", Arguments.createMap().apply {
+                        putInt("fromIndex", lastIndex)
+                        putInt("toIndex", index)
+                    })
+                    
                     emitEvent("topSheetChange", Arguments.createMap().apply {
                         putInt("index", index)
                         putDouble("position", PixelUtil.toDIPFromPixel(bottomSheet.top.toFloat()).toDouble())
                     })
+                    lastIndex = index
                 }
             }
 
@@ -82,6 +118,9 @@ class SmartSheetView(context: Context) : CoordinatorLayout(context) {
     }
 
     private fun setupLayoutListener() {
+        this.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+            updateSnapPoints()
+        }
         sheetContainer.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
             if (isDynamicSizingEnabled) {
                 updateDynamicHeight()
@@ -124,6 +163,40 @@ class SmartSheetView(context: Context) : CoordinatorLayout(context) {
 
     fun setKeyboardBehavior(behavior: String?) {
         this.keyboardBehavior = behavior ?: "interactive"
+    }
+
+    fun setSnapPoints(points: List<Double>) {
+        this.snapPoints = points
+        updateSnapPoints()
+    }
+
+    private fun updateSnapPoints() {
+        if (snapPoints.isEmpty()) return
+
+        // Configure behavior based on number of snap points
+        when (snapPoints.size) {
+            1 -> {
+                behavior.peekHeight = snapPoints[0].toInt()
+                behavior.isFitToContents = true
+            }
+            2 -> {
+                behavior.peekHeight = snapPoints[0].toInt()
+                behavior.isFitToContents = true
+                // Expanded will be the second point implicitly
+            }
+            else -> {
+                // 3 or more points
+                behavior.peekHeight = snapPoints[0].toInt()
+                behavior.isFitToContents = true
+                
+                // Use half-expanded for the middle point
+                behavior.isHideable = true
+                val totalHeight = this.height.toFloat()
+                if (totalHeight > 0) {
+                    behavior.halfExpandedRatio = (totalHeight - snapPoints[1].toFloat()) / totalHeight
+                }
+            }
+        }
     }
 
     private fun emitEvent(name: String, event: com.facebook.react.bridge.WritableMap) {

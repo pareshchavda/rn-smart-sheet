@@ -17,13 +17,13 @@ apply plugin: 'kotlin-android'
 apply plugin: 'com.facebook.react'
 
 android {
-  compileSdkVersion safeExtGet('compileSdkVersion', 33)
+  compileSdkVersion safeExtGet('compileSdkVersion', 35)
 
   namespace "com.rnsmartsheet"
 
   defaultConfig {
-    minSdkVersion safeExtGet('minSdkVersion', 21)
-    targetSdkVersion safeExtGet('targetSdkVersion', 33)
+    minSdkVersion safeExtGet('minSdkVersion', 24)
+    targetSdkVersion safeExtGet('targetSdkVersion', 35)
     buildConfigField("boolean", "IS_NEW_ARCHITECTURE_ENABLED", "true")
   }
   

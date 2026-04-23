@@ -60,9 +60,12 @@ class SmartSheetViewManager : ViewGroupManager<SmartSheetView>(), RNSmartSheetVi
 
     @ReactProp(name = "snapPoints")
     override fun setSnapPoints(view: SmartSheetView, value: ReadableArray?) {
-        if (value != null && value.size() > 0) {
-            val peekHeight = value.getDouble(0).toInt()
-            view.behavior.peekHeight = peekHeight
+        if (value != null) {
+            val points = mutableListOf<Double>()
+            for (i in 0 until value.size()) {
+                points.add(value.getDouble(i))
+            }
+            view.setSnapPoints(points)
         }
     }
 
@@ -112,6 +115,7 @@ class SmartSheetViewManager : ViewGroupManager<SmartSheetView>(), RNSmartSheetVi
         when (index) {
             -1 -> view.behavior.state = BottomSheetBehavior.STATE_HIDDEN
             0 -> view.behavior.state = BottomSheetBehavior.STATE_COLLAPSED
+            1 -> view.behavior.state = BottomSheetBehavior.STATE_HALF_EXPANDED
             else -> view.behavior.state = BottomSheetBehavior.STATE_EXPANDED
         }
         view.requestLayout()
@@ -119,7 +123,7 @@ class SmartSheetViewManager : ViewGroupManager<SmartSheetView>(), RNSmartSheetVi
 
     override fun snapToPosition(view: SmartSheetView, position: Double) {
         Log.d(REACT_CLASS, "snapToPosition: $position")
-        view.behavior.expandedOffset = position.toInt()
+        view.behavior.expandedOffset = PixelUtil.toPixelFromDIP(position).toInt()
         view.behavior.state = BottomSheetBehavior.STATE_EXPANDED
     }
 

@@ -260,14 +260,14 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
         }, [animateToIndex, resolvedSnapPoints]);
 
         const expand = useCallback(() => {
-            console.log('BottomSheet: expand() called');
+            console.log('BottomSheet: expand() called, index is:', index);
             if ((Platform.OS === 'android' || Platform.OS === 'ios') && nativeViewRef.current) {
                 console.log('BottomSheet: sending expand to native');
                 Commands.expand(nativeViewRef.current);
                 return;
             }
             animateToIndex(resolvedSnapPoints.length - 1, true);
-        }, [animateToIndex, resolvedSnapPoints.length]);
+        }, [animateToIndex, index, resolvedSnapPoints.length]);
 
         const collapse = useCallback(() => {
             if ((Platform.OS === 'android' || Platform.OS === 'ios') && nativeViewRef.current) {
@@ -351,6 +351,7 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
             <BackdropComponent
                 animatedIndex={animatedIndex}
                 animatedPosition={animatedPosition}
+                index={currentIndexRef.current}
                 onPress={handleBackdropPress}
             />
         );
@@ -509,7 +510,7 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
             animatedPosition.setValue(position);
         }, [animatedPosition]);
 
-        if (Platform.OS === 'android') {
+        if (Platform.OS === 'android' || Platform.OS === 'ios') {
             const nativeSnapPoints = resolvedSnapPoints.map(point => 
                 typeof point === 'number' ? point : normalizeSnapPoint(point)
             );
@@ -520,7 +521,7 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
                     <RNSmartSheetView
                         ref={nativeViewRef}
                         style={[styles.container, style]}
-                        pointerEvents="box-none"
+                        pointerEvents={index === -1 ? 'none' : 'box-none'}
                         snapPoints={nativeSnapPoints}
                         initialIndex={index}
                         enablePanDownToClose={enablePanDownToClose}
@@ -582,12 +583,14 @@ const styles = StyleSheet.create({
     container: {
         ...StyleSheet.absoluteFillObject,
         justifyContent: 'flex-end',
+        zIndex: 999,
     },
     sheet: {
         position: 'absolute',
         left: 0,
         right: 0,
         bottom: 0,
+        zIndex: 1000,
     },
     background: {
         flex: 1,
@@ -595,14 +598,20 @@ const styles = StyleSheet.create({
         borderTopLeftRadius: 16,
         borderTopRightRadius: 16,
         overflow: 'hidden',
-        shadowColor: '#000',
-        shadowOffset: {
-            width: 0,
-            height: -2,
-        },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 5,
+        ...Platform.select({
+            ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: -2 },
+                shadowOpacity: 0.1,
+                shadowRadius: 8,
+            },
+            android: {
+                elevation: 5,
+            },
+            web: {
+                boxShadow: '0 -2px 8px rgba(0,0,0,0.1)',
+            }
+        })
     },
     content: {
         minHeight: 1,
