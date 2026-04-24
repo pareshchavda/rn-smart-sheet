@@ -35,7 +35,4 @@ config.resolver.blockList = modulesToBlock.map(
   (m) => new RegExp(`${workspaceRoot.replace(/\\/g, '[/\\\\]')}[/\\\\]node_modules[/\\\\]${m}[/\\\\].*`)
 );
 
-// 5. Ensure web extensions are prioritized
-config.resolver.sourceExts = ['web.js', 'web.ts', 'web.tsx', ...config.resolver.sourceExts];
-
 module.exports = config;

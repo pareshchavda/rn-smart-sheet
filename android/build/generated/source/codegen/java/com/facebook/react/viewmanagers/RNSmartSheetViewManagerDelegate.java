@@ -17,6 +17,7 @@ import com.facebook.react.uimanager.BaseViewManager;
 import com.facebook.react.uimanager.BaseViewManagerDelegate;
 import com.facebook.react.uimanager.LayoutShadowNode;
 
+@SuppressWarnings("deprecation")
 public class RNSmartSheetViewManagerDelegate<T extends View, U extends BaseViewManager<T, ? extends LayoutShadowNode> & RNSmartSheetViewManagerInterface<T>> extends BaseViewManagerDelegate<T, U> {
   public RNSmartSheetViewManagerDelegate(U viewManager) {
     super(viewManager);

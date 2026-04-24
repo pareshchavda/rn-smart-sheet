@@ -14,11 +14,21 @@ import {
     Platform,
     StyleSheet,
     View,
+    UIManager,
     useWindowDimensions,
     type LayoutChangeEvent,
     type StyleProp,
     type ViewStyle,
 } from 'react-native';
+
+const isNativeComponentAvailable = (name: string) => {
+    return (
+        Platform.OS !== 'web' &&
+        UIManager.getViewManagerConfig(name) != null
+    );
+};
+
+const IS_NATIVE_AVAILABLE = isNativeComponentAvailable('RNSmartSheetView');
 import type { BottomSheetMethods, BottomSheetProps } from '../../types';
 import { BottomSheetProvider } from '../../contexts/BottomSheetContext';
 import { getClosestSnapPoint, normalizeSnapPoints } from '../../utils/snapPoints';
@@ -238,7 +248,7 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
 
         const snapToIndex = useCallback((targetIndex: number) => {
             console.log('BottomSheet: snapToIndex() called with index:', targetIndex);
-            if ((Platform.OS === 'android' || Platform.OS === 'ios') && nativeViewRef.current) {
+            if (IS_NATIVE_AVAILABLE && nativeViewRef.current) {
                 console.log('BottomSheet: sending snapToIndex to native');
                 Commands.snapToIndex(nativeViewRef.current, targetIndex);
                 return;
@@ -247,7 +257,7 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
         }, [animateToIndex]);
 
         const snapToPosition = useCallback((position: number) => {
-            if ((Platform.OS === 'android' || Platform.OS === 'ios') && nativeViewRef.current) {
+            if (IS_NATIVE_AVAILABLE && nativeViewRef.current) {
                 Commands.snapToPosition(nativeViewRef.current, position);
                 return;
             }
@@ -261,7 +271,7 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
 
         const expand = useCallback(() => {
             console.log('BottomSheet: expand() called, index is:', index);
-            if ((Platform.OS === 'android' || Platform.OS === 'ios') && nativeViewRef.current) {
+            if (IS_NATIVE_AVAILABLE && nativeViewRef.current) {
                 console.log('BottomSheet: sending expand to native');
                 Commands.expand(nativeViewRef.current);
                 return;
@@ -270,7 +280,7 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
         }, [animateToIndex, index, resolvedSnapPoints.length]);
 
         const collapse = useCallback(() => {
-            if ((Platform.OS === 'android' || Platform.OS === 'ios') && nativeViewRef.current) {
+            if (IS_NATIVE_AVAILABLE && nativeViewRef.current) {
                 Commands.collapse(nativeViewRef.current);
                 return;
             }
@@ -279,7 +289,7 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
 
         const close = useCallback(() => {
             console.log('BottomSheet: close() called');
-            if ((Platform.OS === 'android' || Platform.OS === 'ios') && nativeViewRef.current) {
+            if (IS_NATIVE_AVAILABLE && nativeViewRef.current) {
                 console.log('BottomSheet: sending close to native');
                 Commands.close(nativeViewRef.current);
                 return;
@@ -288,7 +298,7 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
         }, [animateToIndex]);
 
         const forceClose = useCallback(() => {
-            if ((Platform.OS === 'android' || Platform.OS === 'ios') && nativeViewRef.current) {
+            if (IS_NATIVE_AVAILABLE && nativeViewRef.current) {
                 Commands.forceClose(nativeViewRef.current);
                 return;
             }
@@ -505,12 +515,17 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
             onChange?.(nextIndex);
         }, [animatedIndex, animatedPosition, onChange]);
 
+        const handleNativeAnimate = useCallback((event: any) => {
+            const { fromIndex, toIndex } = event.nativeEvent;
+            onAnimate?.(fromIndex, toIndex);
+        }, [onAnimate]);
+
         const handleNativePositionChange = useCallback((event: any) => {
             const { position } = event.nativeEvent;
             animatedPosition.setValue(position);
         }, [animatedPosition]);
 
-        if (Platform.OS === 'android' || Platform.OS === 'ios') {
+        if (IS_NATIVE_AVAILABLE) {
             const nativeSnapPoints = resolvedSnapPoints.map(point => 
                 typeof point === 'number' ? point : normalizeSnapPoint(point)
             );
@@ -530,6 +545,7 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
                         keyboardBehavior={keyboardBehavior}
                         keyboardDismissMode={keyboardDismissMode}
                         onSheetChange={handleNativeChange}
+                        onSheetAnimate={handleNativeAnimate}
                         onSheetPositionChange={handleNativePositionChange}
                     >
                         <View style={backgroundStyle}>

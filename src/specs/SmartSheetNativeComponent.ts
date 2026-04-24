@@ -1,13 +1,16 @@
 import type * as React from 'react';
 import type { HostComponent, ViewProps } from 'react-native';
-import codegenNativeCommands from 'react-native/Libraries/Utilities/codegenNativeCommands';
-import codegenNativeComponent from 'react-native/Libraries/Utilities/codegenNativeComponent';
+// @ts-ignore - codegenNativeCommands and codegenNativeComponent are available in react-native 0.71+ 
+// but root exports were added to types in newer versions.
+import { codegenNativeCommands, codegenNativeComponent } from 'react-native';
 import type {
     DirectEventHandler,
     Double,
     Int32,
     WithDefault,
 } from 'react-native/Libraries/Types/CodegenTypes';
+// Note: Deep imports are currently used as they are required for some Codegen versions, 
+// but we've consolidated them here.
 
 export const COMPONENT_NAME = 'RNSmartSheetView';
 

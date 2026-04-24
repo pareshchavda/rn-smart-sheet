@@ -4,6 +4,7 @@ import com.facebook.react.bridge.ReadableArray
 import com.facebook.react.bridge.ReadableMap
 import com.facebook.react.common.MapBuilder
 import android.util.Log
+import com.facebook.react.uimanager.PixelUtil
 import com.facebook.react.uimanager.ThemedReactContext
 import com.facebook.react.uimanager.ViewGroupManager
 import com.facebook.react.uimanager.ViewManagerDelegate
@@ -123,7 +124,8 @@ class SmartSheetViewManager : ViewGroupManager<SmartSheetView>(), RNSmartSheetVi
 
     override fun snapToPosition(view: SmartSheetView, position: Double) {
         Log.d(REACT_CLASS, "snapToPosition: $position")
-        view.behavior.expandedOffset = PixelUtil.toPixelFromDIP(position).toInt()
+        val pixelPosition = PixelUtil.toPixelFromDIP(position)
+        view.behavior.expandedOffset = (view.height - pixelPosition).toInt().coerceAtLeast(0)
         view.behavior.state = BottomSheetBehavior.STATE_EXPANDED
     }
 

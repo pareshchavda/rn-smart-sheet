@@ -12,6 +12,7 @@
 #include <react/renderer/components/view/ViewProps.h>
 #include <react/renderer/core/PropsParserContext.h>
 #include <react/renderer/core/propsConversions.h>
+#include <react/renderer/debug/DebugStringConvertible.h>
 #include <vector>
 
 namespace facebook::react {
@@ -24,6 +25,7 @@ struct RNSmartSheetViewSpringConfigStruct {
   bool overshootClamping{false};
   double restDisplacementThreshold{0.0};
   double restSpeedThreshold{0.0};
+
 
 #ifdef RN_SERIALIZABLE_STATE
   bool operator==(const RNSmartSheetViewSpringConfigStruct&) const = default;
@@ -97,8 +99,8 @@ class RNSmartSheetViewProps final : public ViewProps {
   bool enableGesture{true};
   double overDragResistanceFactor{0.0};
   bool enableDynamicSizing{false};
-  std::string keyboardBehavior{"interactive"};
-  std::string keyboardDismissMode{"on-drag"};
+  std::string keyboardBehavior{std::string{"interactive"}};
+  std::string keyboardDismissMode{std::string{"on-drag"}};
   RNSmartSheetViewSpringConfigStruct springConfig{};
 
   #ifdef RN_SERIALIZABLE_STATE
@@ -106,6 +108,8 @@ class RNSmartSheetViewProps final : public ViewProps {
 
   folly::dynamic getDiffProps(const Props* prevProps) const override;
   #endif
+
+  
 };
 
 } // namespace facebook::react

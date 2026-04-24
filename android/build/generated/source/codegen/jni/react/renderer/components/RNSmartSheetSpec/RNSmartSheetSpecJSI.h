@@ -15,66 +15,31 @@
 namespace facebook::react {
 
 
-  class JSI_EXPORT NativeSmartSheetModuleCxxSpecJSI : public TurboModule {
-protected:
-  NativeSmartSheetModuleCxxSpecJSI(std::shared_ptr<CallInvoker> jsInvoker);
-
-public:
-  virtual bool isFabricAvailable(jsi::Runtime &rt) = 0;
-  virtual bool install(jsi::Runtime &rt) = 0;
-
-};
-
 template <typename T>
 class JSI_EXPORT NativeSmartSheetModuleCxxSpec : public TurboModule {
 public:
-  jsi::Value create(jsi::Runtime &rt, const jsi::PropNameID &propName) override {
-    return delegate_.create(rt, propName);
-  }
-
-  std::vector<jsi::PropNameID> getPropertyNames(jsi::Runtime& runtime) override {
-    return delegate_.getPropertyNames(runtime);
-  }
-
   static constexpr std::string_view kModuleName = "RNSmartSheetModule";
 
 protected:
-  NativeSmartSheetModuleCxxSpec(std::shared_ptr<CallInvoker> jsInvoker)
-    : TurboModule(std::string{NativeSmartSheetModuleCxxSpec::kModuleName}, jsInvoker),
-      delegate_(reinterpret_cast<T*>(this), jsInvoker) {}
-
-
+  NativeSmartSheetModuleCxxSpec(std::shared_ptr<CallInvoker> jsInvoker) : TurboModule(std::string{NativeSmartSheetModuleCxxSpec::kModuleName}, jsInvoker) {
+    methodMap_["isFabricAvailable"] = MethodMetadata {.argCount = 0, .invoker = __isFabricAvailable};
+    methodMap_["install"] = MethodMetadata {.argCount = 0, .invoker = __install};
+  }
+  
 private:
-  class Delegate : public NativeSmartSheetModuleCxxSpecJSI {
-  public:
-    Delegate(T *instance, std::shared_ptr<CallInvoker> jsInvoker) :
-      NativeSmartSheetModuleCxxSpecJSI(std::move(jsInvoker)), instance_(instance) {
+  static jsi::Value __isFabricAvailable(jsi::Runtime &rt, TurboModule &turboModule, const jsi::Value* /*args*/, size_t /*count*/) {
+    static_assert(
+      bridging::getParameterCount(&T::isFabricAvailable) == 1,
+      "Expected isFabricAvailable(...) to have 1 parameters");
+    return bridging::callFromJs<bool>(rt, &T::isFabricAvailable,  static_cast<NativeSmartSheetModuleCxxSpec*>(&turboModule)->jsInvoker_, static_cast<T*>(&turboModule));
+  }
 
-    }
-
-    bool isFabricAvailable(jsi::Runtime &rt) override {
-      static_assert(
-          bridging::getParameterCount(&T::isFabricAvailable) == 1,
-          "Expected isFabricAvailable(...) to have 1 parameters");
-
-      return bridging::callFromJs<bool>(
-          rt, &T::isFabricAvailable, jsInvoker_, instance_);
-    }
-    bool install(jsi::Runtime &rt) override {
-      static_assert(
-          bridging::getParameterCount(&T::install) == 1,
-          "Expected install(...) to have 1 parameters");
-
-      return bridging::callFromJs<bool>(
-          rt, &T::install, jsInvoker_, instance_);
-    }
-
-  private:
-    friend class NativeSmartSheetModuleCxxSpec;
-    T *instance_;
-  };
-
-  Delegate delegate_;
+  static jsi::Value __install(jsi::Runtime &rt, TurboModule &turboModule, const jsi::Value* /*args*/, size_t /*count*/) {
+    static_assert(
+      bridging::getParameterCount(&T::install) == 1,
+      "Expected install(...) to have 1 parameters");
+    return bridging::callFromJs<bool>(rt, &T::install,  static_cast<NativeSmartSheetModuleCxxSpec*>(&turboModule)->jsInvoker_, static_cast<T*>(&turboModule));
+  }
 };
 
 } // namespace facebook::react

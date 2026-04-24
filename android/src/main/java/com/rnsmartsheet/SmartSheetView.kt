@@ -166,7 +166,7 @@ class SmartSheetView(context: Context) : CoordinatorLayout(context) {
     }
 
     fun setSnapPoints(points: List<Double>) {
-        this.snapPoints = points
+        this.snapPoints = points.map { PixelUtil.toPixelFromDIP(it.toFloat()).toDouble() }
         updateSnapPoints()
     }
 

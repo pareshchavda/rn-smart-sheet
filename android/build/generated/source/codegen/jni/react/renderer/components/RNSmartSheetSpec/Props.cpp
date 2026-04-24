@@ -25,8 +25,8 @@ RNSmartSheetViewProps::RNSmartSheetViewProps(
     enableGesture(convertRawProp(context, rawProps, "enableGesture", sourceProps.enableGesture, {true})),
     overDragResistanceFactor(convertRawProp(context, rawProps, "overDragResistanceFactor", sourceProps.overDragResistanceFactor, {0.0})),
     enableDynamicSizing(convertRawProp(context, rawProps, "enableDynamicSizing", sourceProps.enableDynamicSizing, {false})),
-    keyboardBehavior(convertRawProp(context, rawProps, "keyboardBehavior", sourceProps.keyboardBehavior, {"interactive"})),
-    keyboardDismissMode(convertRawProp(context, rawProps, "keyboardDismissMode", sourceProps.keyboardDismissMode, {"on-drag"})),
+    keyboardBehavior(convertRawProp(context, rawProps, "keyboardBehavior", sourceProps.keyboardBehavior, {std::string{"interactive"}})),
+    keyboardDismissMode(convertRawProp(context, rawProps, "keyboardDismissMode", sourceProps.keyboardDismissMode, {std::string{"on-drag"}})),
     springConfig(convertRawProp(context, rawProps, "springConfig", sourceProps.springConfig, {})) {}
     
 #ifdef RN_SERIALIZABLE_STATE
