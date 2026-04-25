@@ -1,6 +1,7 @@
-import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
+import React, { useRef, useMemo, useState } from 'react';
+import { Button, Platform, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as Device from 'expo-device';
 
 import { AnimatedIcon } from '@/components/animated-icon';
 import { HintRow } from '@/components/hint-row';
@@ -8,9 +9,8 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { WebBadge } from '@/components/web-badge';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
-import { BottomSheet, BottomSheetView } from 'rn-smart-sheet';
-import React, { useRef, useMemo } from 'react';
-import { Button } from 'react-native';
+import { BottomSheetModal, BottomSheetView, KeyboardBehavior } from 'rn-smart-sheet';
+import type { BottomSheetMethods } from 'rn-smart-sheet';
 
 function getDevMenuHint() {
   if (Platform.OS === 'web') {
@@ -32,8 +32,11 @@ function getDevMenuHint() {
 }
 
 export default function HomeScreen() {
-  const bottomSheetRef = useRef<BottomSheet>(null);
-  const snapPoints = useMemo(() => ['25%', '50%', '75%'], []);
+  const bottomSheetRef = useRef<BottomSheetMethods>(null);
+  const [dynamicSizing, setDynamicSizing] = useState(false);
+  const [keyboardBehavior, setKeyboardBehavior] = useState<KeyboardBehavior>(KeyboardBehavior.INTERACTIVE);
+  
+  const snapPoints = useMemo(() => dynamicSizing ? [] : ['25%', '50%', '75%'], [dynamicSizing]);
 
   return (
     <ThemedView style={styles.container}>
@@ -63,23 +66,65 @@ export default function HomeScreen() {
 
         {Platform.OS === 'web' && <WebBadge />}
 
-        <Button
-          title="Open Bottom Sheet"
-          onPress={() => bottomSheetRef.current?.expand()}
-        />
+        <ThemedView style={styles.buttonContainer}>
+          <Button
+            title="Open Bottom Sheet"
+            onPress={() => {
+              console.warn('Example: Open Button Pressed');
+              bottomSheetRef.current?.expand();
+            }}
+          />
+          
+          <Button
+            title={`Dynamic Sizing: ${dynamicSizing ? 'ON' : 'OFF'}`}
+            onPress={() => setDynamicSizing(!dynamicSizing)}
+          />
+        </ThemedView>
 
-        <BottomSheet
+        <ThemedView style={styles.buttonContainer}>
+          <ThemedText type="small">Keyboard Behavior:</ThemedText>
+          <View style={styles.row}>
+            <Button title="Interactive" onPress={() => setKeyboardBehavior(KeyboardBehavior.INTERACTIVE)} color={keyboardBehavior === KeyboardBehavior.INTERACTIVE ? '#007AFF' : '#8E8E93'} />
+            <Button title="Extend" onPress={() => setKeyboardBehavior(KeyboardBehavior.EXTEND)} color={keyboardBehavior === KeyboardBehavior.EXTEND ? '#007AFF' : '#8E8E93'} />
+          </View>
+        </ThemedView>
+
+        <BottomSheetModal
           ref={bottomSheetRef}
           index={-1}
           snapPoints={snapPoints}
-          enablePanDownToClose={true}>
+          enableDynamicSizing={dynamicSizing}
+          keyboardBehavior={keyboardBehavior}
+          enablePanDownToClose={true}
+        >
           <BottomSheetView style={styles.contentContainer}>
             <ThemedText type="subtitle">🎉 Smart Sheet</ThemedText>
             <ThemedText>
-              This is a performant bottom sheet component.
+              {dynamicSizing 
+                ? "This sheet is using Dynamic Sizing! It will automatically adjust its height based on the content inside it."
+                : "This is a performant bottom sheet component with fixed snap points."}
             </ThemedText>
+            
+            <TextInput 
+              placeholder="Focus me to test keyboard..."
+              style={styles.input}
+              placeholderTextColor="#8E8E93"
+            />
+            
+            {dynamicSizing && (
+              <ThemedText>
+                Extra content to test dynamic height changes...
+                Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+              </ThemedText>
+            )}
+
+            <Button
+              title="Close Sheet"
+              onPress={() => bottomSheetRef.current?.close()}
+              color="#FF3B30"
+            />
           </BottomSheetView>
-        </BottomSheet>
+        </BottomSheetModal>
       </SafeAreaView>
     </ThemedView>
   );
@@ -122,5 +167,26 @@ const styles = StyleSheet.create({
   contentContainer: {
     padding: Spacing.four,
     gap: Spacing.three,
+  },
+  buttonContainer: {
+    width: '100%',
+    gap: Spacing.two,
+    paddingHorizontal: Spacing.four,
+    marginVertical: Spacing.two,
+  },
+  row: {
+    flexDirection: 'row',
+    gap: Spacing.two,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 8,
+    padding: Spacing.three,
+    color: '#1F2937',
+    backgroundColor: '#F9FAFB',
+    width: '100%',
   },
 });

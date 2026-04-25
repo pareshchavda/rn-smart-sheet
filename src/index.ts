@@ -1,5 +1,7 @@
 // Main component
 export { BottomSheet } from './components/BottomSheet';
+export { BottomSheetModal } from './components/BottomSheetModal/BottomSheetModal';
+export { BottomSheetModalProvider } from './components/BottomSheetModalProvider/BottomSheetModalProvider';
 
 // Child components
 export { BottomSheetView } from './components/BottomSheetView';
@@ -14,6 +16,8 @@ export { useBottomSheet } from './hooks/useBottomSheet';
 export type {
     BottomSheetProps,
     BottomSheetMethods,
+    BottomSheetModalProps,
+    BottomSheetModalProviderProps,
     BottomSheetBackdropProps,
     BottomSheetHandleProps,
     BottomSheetScrollViewProps,

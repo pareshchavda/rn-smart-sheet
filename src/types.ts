@@ -98,3 +98,10 @@ export interface BottomSheetViewProps {
     style?: StyleProp<ViewStyle>;
     focusHook?: RefObject<any>;
 }
+export interface BottomSheetModalProps extends BottomSheetProps {
+    name?: string;
+}
+
+export interface BottomSheetModalProviderProps {
+    children: ReactNode;
+}

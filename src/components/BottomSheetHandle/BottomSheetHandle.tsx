@@ -29,10 +29,10 @@ const styles = StyleSheet.create({
         paddingVertical: 12,
     },
     indicator: {
-        width: 40,
-        height: 4,
-        borderRadius: 2,
-        backgroundColor: '#D1D5DB',
+        width: 44,
+        height: 5,
+        borderRadius: 2.5,
+        backgroundColor: '#E5E7EB',
     },
 });
 

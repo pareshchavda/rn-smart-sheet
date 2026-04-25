@@ -20,6 +20,12 @@ import {
     type StyleProp,
     type ViewStyle,
 } from 'react-native';
+import type { BottomSheetMethods, BottomSheetProps } from '../../types';
+import { BottomSheetProvider } from '../../contexts/BottomSheetContext';
+import { getClosestSnapPoint, normalizeSnapPoints, normalizeSnapPoint } from '../../utils/snapPoints';
+import { BottomSheetBackdrop } from '../BottomSheetBackdrop';
+import { BottomSheetHandle } from '../BottomSheetHandle';
+import RNSmartSheetView, { Commands } from '../../specs/SmartSheetNativeComponent';
 
 const isNativeComponentAvailable = (name: string) => {
     return (
@@ -29,13 +35,6 @@ const isNativeComponentAvailable = (name: string) => {
 };
 
 const IS_NATIVE_AVAILABLE = isNativeComponentAvailable('RNSmartSheetView');
-import type { BottomSheetMethods, BottomSheetProps } from '../../types';
-import { BottomSheetProvider } from '../../contexts/BottomSheetContext';
-import { getClosestSnapPoint, normalizeSnapPoints } from '../../utils/snapPoints';
-import { BottomSheetBackdrop } from '../BottomSheetBackdrop';
-import { BottomSheetHandle } from '../BottomSheetHandle';
-import RNSmartSheetView, { Commands } from '../../specs/SmartSheetNativeComponent';
-import { normalizeSnapPoint } from '../../utils/snapPoints';
 
 const DEFAULT_ANIMATION_CONFIG = {
     damping: 30,
@@ -99,6 +98,7 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
         const [contentHeight, setContentHeight] = useState(0);
         const [handleHeight, setHandleHeight] = useState(24);
         const [keyboardHeight, setKeyboardHeight] = useState(0);
+        const [isInternalOpen, setIsInternalOpen] = useState(index !== -1);
 
         const normalizedBaseSnapPoints = useMemo(
             () => normalizeSnapPoints(snapPoints).filter((value) => value > 0),
@@ -167,6 +167,7 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
         );
 
         useEffect(() => {
+            console.warn('BottomSheet: Initializing animated position listener');
             const listenerId = animatedPosition.addListener(({ value }) => {
                 currentPositionRef.current = value;
             });
@@ -247,16 +248,21 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
         const nativeViewRef = useRef<any>(null);
 
         const snapToIndex = useCallback((targetIndex: number) => {
-            console.log('BottomSheet: snapToIndex() called with index:', targetIndex);
+            console.warn('BottomSheet: snapToIndex() called with index:', targetIndex);
+            if (targetIndex !== -1) {
+                setIsInternalOpen(true);
+            }
             if (IS_NATIVE_AVAILABLE && nativeViewRef.current) {
                 console.log('BottomSheet: sending snapToIndex to native');
                 Commands.snapToIndex(nativeViewRef.current, targetIndex);
                 return;
             }
+            console.log('BottomSheet: falling back to JS animateToIndex');
             animateToIndex(targetIndex, true);
         }, [animateToIndex]);
 
         const snapToPosition = useCallback((position: number) => {
+            console.log('BottomSheet: snapToPosition() called with position:', position);
             if (IS_NATIVE_AVAILABLE && nativeViewRef.current) {
                 Commands.snapToPosition(nativeViewRef.current, position);
                 return;
@@ -270,14 +276,16 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
         }, [animateToIndex, resolvedSnapPoints]);
 
         const expand = useCallback(() => {
-            console.log('BottomSheet: expand() called, index is:', index);
+            console.warn('BottomSheet: expand() called');
+            setIsInternalOpen(true);
             if (IS_NATIVE_AVAILABLE && nativeViewRef.current) {
-                console.log('BottomSheet: sending expand to native');
+                console.warn('BottomSheet: sending expand to native');
                 Commands.expand(nativeViewRef.current);
                 return;
             }
+            console.warn('BottomSheet: falling back to JS expand (animateToIndex)');
             animateToIndex(resolvedSnapPoints.length - 1, true);
-        }, [animateToIndex, index, resolvedSnapPoints.length]);
+        }, [animateToIndex, resolvedSnapPoints.length]);
 
         const collapse = useCallback(() => {
             if (IS_NATIVE_AVAILABLE && nativeViewRef.current) {
@@ -288,9 +296,9 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
         }, [animateToIndex]);
 
         const close = useCallback(() => {
-            console.log('BottomSheet: close() called');
+            console.warn('BottomSheet: close() called');
             if (IS_NATIVE_AVAILABLE && nativeViewRef.current) {
-                console.log('BottomSheet: sending close to native');
+                console.warn('BottomSheet: sending close to native');
                 Commands.close(nativeViewRef.current);
                 return;
             }
@@ -509,6 +517,11 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
 
         const handleNativeChange = useCallback((event: any) => {
             const { index: nextIndex, position } = event.nativeEvent;
+            if (nextIndex === -1) {
+                setIsInternalOpen(false);
+            } else {
+                setIsInternalOpen(true);
+            }
             currentIndexRef.current = nextIndex;
             animatedIndex.setValue(nextIndex);
             animatedPosition.setValue(position);
@@ -533,12 +546,15 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
             return (
                 <BottomSheetProvider value={contextValue}>
                     {renderBackdrop}
-                    <RNSmartSheetView
-                        ref={nativeViewRef}
-                        style={[styles.container, style]}
-                        pointerEvents={index === -1 ? 'none' : 'box-none'}
-                        snapPoints={nativeSnapPoints}
-                        initialIndex={index}
+                    <View 
+                        style={styles.container} 
+                        pointerEvents={isInternalOpen ? 'box-none' : 'none'}
+                    >
+                        <RNSmartSheetView
+                            ref={nativeViewRef}
+                            style={StyleSheet.absoluteFill}
+                            snapPoints={nativeSnapPoints}
+                            initialIndex={index}
                         enablePanDownToClose={enablePanDownToClose}
                         enableGesture={enableGesture}
                         enableDynamicSizing={enableDynamicSizing}
@@ -548,13 +564,14 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
                         onSheetAnimate={handleNativeAnimate}
                         onSheetPositionChange={handleNativePositionChange}
                     >
-                        <View style={backgroundStyle}>
+                        <View style={[styles.background, backgroundStyle]}>
                             {renderHandle}
                             <View style={contentContainerStyle}>
                                 {children}
                             </View>
                         </View>
                     </RNSmartSheetView>
+                    </View>
                 </BottomSheetProvider>
             );
         }
@@ -597,9 +614,14 @@ BottomSheetComponent.displayName = 'BottomSheet';
 
 const styles = StyleSheet.create({
     container: {
-        ...StyleSheet.absoluteFillObject,
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0, // Keep bottom 0 but allow overflow
         justifyContent: 'flex-end',
         zIndex: 999,
+        overflow: 'visible',
     },
     sheet: {
         position: 'absolute',
@@ -611,21 +633,21 @@ const styles = StyleSheet.create({
     background: {
         flex: 1,
         backgroundColor: '#FFFFFF',
-        borderTopLeftRadius: 16,
-        borderTopRightRadius: 16,
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
         overflow: 'hidden',
         ...Platform.select({
             ios: {
                 shadowColor: '#000',
-                shadowOffset: { width: 0, height: -2 },
+                shadowOffset: { width: 0, height: -4 },
                 shadowOpacity: 0.1,
-                shadowRadius: 8,
+                shadowRadius: 12,
             },
             android: {
-                elevation: 5,
+                elevation: 16,
             },
             web: {
-                boxShadow: '0 -2px 8px rgba(0,0,0,0.1)',
+                boxShadow: '0 -4px 16px rgba(0,0,0,0.1)',
             }
         })
     },

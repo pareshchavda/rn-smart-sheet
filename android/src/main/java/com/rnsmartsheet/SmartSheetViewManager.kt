@@ -30,15 +30,11 @@ class SmartSheetViewManager : ViewGroupManager<SmartSheetView>(), RNSmartSheetVi
     }
 
     override fun receiveCommand(view: SmartSheetView, commandId: String, args: ReadableArray?) {
-        Log.d(REACT_CLASS, "receiveCommand: $commandId")
-        System.out.println("RNSmartSheet: receiveCommand String: $commandId")
+        // Fallback for non-Fabric or if delegate doesn't handle it
+        Log.d(REACT_CLASS, "receiveCommand (String): $commandId")
         when (commandId) {
-            "snapToIndex" -> args?.let { snapToIndex(view, it.getInt(0)) }
-            "snapToPosition" -> args?.let { snapToPosition(view, it.getDouble(0)) }
             "expand" -> expand(view)
-            "collapse" -> collapse(view)
             "close" -> close(view)
-            "forceClose" -> forceClose(view)
         }
     }
 
@@ -56,11 +52,14 @@ class SmartSheetViewManager : ViewGroupManager<SmartSheetView>(), RNSmartSheetVi
     }
 
     override fun createViewInstance(context: ThemedReactContext): SmartSheetView {
+        System.out.println("RNSmartSheet: createViewInstance called")
+        Log.d(REACT_CLASS, "createViewInstance")
         return SmartSheetView(context)
     }
 
     @ReactProp(name = "snapPoints")
     override fun setSnapPoints(view: SmartSheetView, value: ReadableArray?) {
+        System.out.println("RNSmartSheet: setSnapPoints called, size: ${value?.size() ?: 0}")
         if (value != null) {
             val points = mutableListOf<Double>()
             for (i in 0 until value.size()) {
@@ -100,7 +99,7 @@ class SmartSheetViewManager : ViewGroupManager<SmartSheetView>(), RNSmartSheetVi
 
     @ReactProp(name = "keyboardBehavior")
     override fun setKeyboardBehavior(view: SmartSheetView, value: String?) {
-        view.setKeyboardBehavior(value)
+        view.setKeyboardBehavior(value ?: "interactive")
     }
 
     @ReactProp(name = "keyboardDismissMode")
@@ -113,13 +112,15 @@ class SmartSheetViewManager : ViewGroupManager<SmartSheetView>(), RNSmartSheetVi
 
     override fun snapToIndex(view: SmartSheetView, index: Int) {
         Log.d(REACT_CLASS, "snapToIndex: $index")
-        when (index) {
-            -1 -> view.behavior.state = BottomSheetBehavior.STATE_HIDDEN
-            0 -> view.behavior.state = BottomSheetBehavior.STATE_COLLAPSED
-            1 -> view.behavior.state = BottomSheetBehavior.STATE_HALF_EXPANDED
-            else -> view.behavior.state = BottomSheetBehavior.STATE_EXPANDED
+        view.post {
+            when (index) {
+                -1 -> view.behavior.state = BottomSheetBehavior.STATE_HIDDEN
+                0 -> view.behavior.state = BottomSheetBehavior.STATE_COLLAPSED
+                1 -> view.behavior.state = BottomSheetBehavior.STATE_HALF_EXPANDED
+                else -> view.behavior.state = BottomSheetBehavior.STATE_EXPANDED
+            }
+            view.requestLayout()
         }
-        view.requestLayout()
     }
 
     override fun snapToPosition(view: SmartSheetView, position: Double) {
@@ -130,10 +131,13 @@ class SmartSheetViewManager : ViewGroupManager<SmartSheetView>(), RNSmartSheetVi
     }
 
     override fun expand(view: SmartSheetView) {
-        Log.d(REACT_CLASS, "expand")
-        System.out.println("RNSmartSheet: expand called")
-        view.behavior.state = BottomSheetBehavior.STATE_EXPANDED
-        view.requestLayout()
+        Log.d(REACT_CLASS, "expand() interface method called")
+        System.out.println("RNSmartSheet: expand() interface method called")
+        view.post {
+            Log.d(REACT_CLASS, "Setting behavior state to STATE_EXPANDED")
+            view.behavior.state = BottomSheetBehavior.STATE_EXPANDED
+            view.requestLayout()
+        }
     }
 
     override fun collapse(view: SmartSheetView) {
@@ -144,8 +148,10 @@ class SmartSheetViewManager : ViewGroupManager<SmartSheetView>(), RNSmartSheetVi
 
     override fun close(view: SmartSheetView) {
         Log.d(REACT_CLASS, "close")
-        view.behavior.state = BottomSheetBehavior.STATE_HIDDEN
-        view.requestLayout()
+        view.post {
+            view.behavior.state = BottomSheetBehavior.STATE_HIDDEN
+            view.requestLayout()
+        }
     }
 
     override fun forceClose(view: SmartSheetView) {

@@ -9,10 +9,14 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
 import android.graphics.Color
+import android.view.ViewGroup
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.ReactContext
+import com.facebook.react.bridge.WritableMap
 import com.facebook.react.uimanager.events.RCTEventEmitter
 import com.facebook.react.uimanager.PixelUtil
+import com.facebook.react.uimanager.UIManagerHelper
+import com.facebook.react.uimanager.events.Event
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 
 class SmartSheetView(context: Context) : CoordinatorLayout(context) {
@@ -24,55 +28,41 @@ class SmartSheetView(context: Context) : CoordinatorLayout(context) {
     private var keyboardBehavior = "interactive"
     private var keyboardHeight = 0
     private var snapPoints: List<Double> = emptyList()
+    private var lastIndex = -1
 
     init {
+        // Configure the container
         val params = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
         params.behavior = behavior
         
         behavior.isHideable = true
-        behavior.skipCollapsed = false // Allow collapsed state
+        behavior.skipCollapsed = false
         behavior.state = BottomSheetBehavior.STATE_HIDDEN
-        sheetContainer.layoutParams = params
         
-        // Important: Set background to transparent to avoid black screen
-        this.setBackgroundColor(Color.TRANSPARENT)
+        sheetContainer.layoutParams = params
         sheetContainer.setBackgroundColor(Color.TRANSPARENT)
+        
+        // Transparent background for the coordinator to avoid blocking background
+        this.setBackgroundColor(Color.TRANSPARENT)
+        this.clipChildren = false
+        this.clipToPadding = false
 
         super.addView(sheetContainer, -1, params)
 
         setupBehaviorListeners()
         setupInsetsListener()
-        setupLayoutListener()
-        setupTouchListener()
+        setupLayoutListeners()
+        setupTouchHandling()
     }
 
-    private fun setupTouchListener() {
-        this.setOnTouchListener { _, event ->
-            if (event.action == android.view.MotionEvent.ACTION_DOWN) {
-                if (behavior.state != BottomSheetBehavior.STATE_HIDDEN) {
-                    // Check if touch is outside the sheet container
-                    val location = IntArray(2)
-                    sheetContainer.getLocationOnScreen(location)
-                    val sheetX = location[0]
-                    val sheetY = location[1]
-                    val sheetWidth = sheetContainer.width
-                    val sheetHeight = sheetContainer.height
-
-                    if (event.rawX < sheetX || event.rawX > sheetX + sheetWidth ||
-                        event.rawY < sheetY || event.rawY > sheetY + sheetHeight) {
-                        
-                        // Click is outside the sheet, close it
-                        behavior.state = BottomSheetBehavior.STATE_HIDDEN
-                        return@setOnTouchListener true
-                    }
-                }
-            }
+    private fun setupTouchHandling() {
+        this.setOnTouchListener { _, _ ->
+            // If the sheet is open, we can handle backdrop clicks here if needed
             false
         }
     }
 
     private fun setupBehaviorListeners() {
-        var lastIndex = -1
         behavior.addBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
             override fun onStateChanged(bottomSheet: View, newState: Int) {
                 Log.d("SmartSheetView", "onStateChanged: $newState")
@@ -85,12 +75,13 @@ class SmartSheetView(context: Context) : CoordinatorLayout(context) {
                 }
 
                 if (index != -2 && index != lastIndex) {
-                    // Emit animate event
+                    // Notify about animation start/end
                     emitEvent("topSheetAnimate", Arguments.createMap().apply {
                         putInt("fromIndex", lastIndex)
                         putInt("toIndex", index)
                     })
                     
+                    // Notify about final state change
                     emitEvent("topSheetChange", Arguments.createMap().apply {
                         putInt("index", index)
                         putDouble("position", PixelUtil.toDIPFromPixel(bottomSheet.top.toFloat()).toDouble())
@@ -107,20 +98,53 @@ class SmartSheetView(context: Context) : CoordinatorLayout(context) {
         })
     }
 
+    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+        val displayMetrics = context.resources.displayMetrics
+        val stableHeightSpec = MeasureSpec.makeMeasureSpec(displayMetrics.heightPixels, MeasureSpec.EXACTLY)
+        super.onMeasure(widthMeasureSpec, stableHeightSpec)
+    }
+
+    override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {
+        val displayMetrics = context.resources.displayMetrics
+        // Force the bottom to the screen edge regardless of what the parent says
+        super.onLayout(changed, l, t, r, displayMetrics.heightPixels)
+    }
+
     private fun setupInsetsListener() {
         ViewCompat.setOnApplyWindowInsetsListener(this) { _, insets ->
             val imeInsets = insets.getInsets(WindowInsetsCompat.Type.ime())
-            keyboardHeight = imeInsets.bottom
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             
-            handleKeyboardChange()
+            // Subtract system bars (like navigation bar) to get pure keyboard height
+            val newKeyboardHeight = (imeInsets.bottom - systemBars.bottom).coerceAtLeast(0)
+            
+            if (keyboardHeight != newKeyboardHeight) {
+                keyboardHeight = newKeyboardHeight
+                Log.d("SmartSheetView", "Keyboard height: $keyboardHeight")
+                handleKeyboardChange()
+            }
             insets
         }
     }
 
-    private fun setupLayoutListener() {
+    private fun handleKeyboardChange() {
+        // Lift the container content
+        sheetContainer.updatePadding(bottom = keyboardHeight)
+        
+        if (keyboardBehavior == "extend" && keyboardHeight > 0 && behavior.state != BottomSheetBehavior.STATE_HIDDEN) {
+            behavior.state = BottomSheetBehavior.STATE_EXPANDED
+        }
+        
+        // Force a layout refresh with the new padding
+        sheetContainer.requestLayout()
+        this.requestLayout()
+    }
+
+    private fun setupLayoutListeners() {
         this.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
             updateSnapPoints()
         }
+        
         sheetContainer.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
             if (isDynamicSizingEnabled) {
                 updateDynamicHeight()
@@ -128,52 +152,20 @@ class SmartSheetView(context: Context) : CoordinatorLayout(context) {
         }
     }
 
-    private fun handleKeyboardChange() {
-        when (keyboardBehavior) {
-            "interactive" -> {
-                sheetContainer.updatePadding(bottom = keyboardHeight)
-            }
-            "extend" -> {
-                if (keyboardHeight > 0 && behavior.state != BottomSheetBehavior.STATE_EXPANDED) {
-                    behavior.state = BottomSheetBehavior.STATE_EXPANDED
-                }
-            }
-        }
-    }
-
-    private fun updateDynamicHeight() {
-        var totalHeight = 0
-        for (i in 0 until sheetContainer.childCount) {
-            totalHeight += sheetContainer.getChildAt(i).measuredHeight
-        }
-        
-        if (totalHeight > 0) {
-            val padding = sheetContainer.paddingTop + sheetContainer.paddingBottom
-            behavior.peekHeight = totalHeight + padding
-        }
-    }
-
-    fun setEnableDynamicSizing(enabled: Boolean) {
-        this.isDynamicSizingEnabled = enabled
-        if (enabled) {
-            behavior.peekHeight = BottomSheetBehavior.PEEK_HEIGHT_AUTO
-            updateDynamicHeight()
-        }
-    }
-
-    fun setKeyboardBehavior(behavior: String?) {
-        this.keyboardBehavior = behavior ?: "interactive"
-    }
-
-    fun setSnapPoints(points: List<Double>) {
-        this.snapPoints = points.map { PixelUtil.toPixelFromDIP(it.toFloat()).toDouble() }
-        updateSnapPoints()
-    }
-
     private fun updateSnapPoints() {
-        if (snapPoints.isEmpty()) return
+        if (snapPoints.isEmpty() || height == 0) return
 
-        // Configure behavior based on number of snap points
+        val maxPoint = snapPoints.last().toInt()
+        val totalHeight = height.toFloat()
+        
+        // Update container height
+        val params = sheetContainer.layoutParams as LayoutParams
+        if (params.height != maxPoint && maxPoint > 0) {
+            params.height = maxPoint
+            sheetContainer.layoutParams = params
+        }
+
+        // Configure behavior based on snap points
         when (snapPoints.size) {
             1 -> {
                 behavior.peekHeight = snapPoints[0].toInt()
@@ -182,37 +174,78 @@ class SmartSheetView(context: Context) : CoordinatorLayout(context) {
             2 -> {
                 behavior.peekHeight = snapPoints[0].toInt()
                 behavior.isFitToContents = true
-                // Expanded will be the second point implicitly
             }
             else -> {
-                // 3 or more points
                 behavior.peekHeight = snapPoints[0].toInt()
-                behavior.isFitToContents = true
-                
-                // Use half-expanded for the middle point
+                behavior.isFitToContents = false
                 behavior.isHideable = true
-                val totalHeight = this.height.toFloat()
-                if (totalHeight > 0) {
-                    behavior.halfExpandedRatio = (totalHeight - snapPoints[1].toFloat()) / totalHeight
-                }
+                
+                // Calculate ratio for the middle point
+                val midPoint = snapPoints[1].toFloat()
+                behavior.halfExpandedRatio = (totalHeight - midPoint) / totalHeight
+                
+                // Offset for the highest point
+                val topOffset = (totalHeight - snapPoints.last().toFloat()).toInt()
+                behavior.expandedOffset = topOffset.coerceAtLeast(0)
             }
         }
     }
 
-    private fun emitEvent(name: String, event: com.facebook.react.bridge.WritableMap) {
-        (context as? ReactContext)?.getJSModule(RCTEventEmitter::class.java)?.receiveEvent(id, name, event)
+    private fun updateDynamicHeight() {
+        var contentHeight = 0
+        for (i in 0 until sheetContainer.childCount) {
+            contentHeight += sheetContainer.getChildAt(i).measuredHeight
+        }
+        
+        if (contentHeight > 0) {
+            val totalNeeded = contentHeight + sheetContainer.paddingTop + sheetContainer.paddingBottom
+            behavior.peekHeight = totalNeeded
+        }
+    }
+
+    fun setSnapPoints(points: List<Double>) {
+        this.snapPoints = points
+        updateSnapPoints()
+    }
+
+    fun setEnableDynamicSizing(enabled: Boolean) {
+        this.isDynamicSizingEnabled = enabled
+    }
+
+    fun setKeyboardBehavior(behavior: String) {
+        this.keyboardBehavior = behavior
+    }
+
+    private class SmartSheetEvent(
+        surfaceId: Int,
+        viewId: Int,
+        private val mEventName: String,
+        private val eventData: WritableMap
+    ) : Event<SmartSheetEvent>(surfaceId, viewId) {
+        override fun getEventName() = mEventName
+        override fun getEventData(): WritableMap? = eventData
+        override fun dispatch(rctEventEmitter: RCTEventEmitter) {
+            rctEventEmitter.receiveEvent(viewTag, eventName, eventData)
+        }
+    }
+
+    private fun emitEvent(name: String, eventData: WritableMap) {
+        try {
+            val reactContext = context as? ReactContext ?: return
+            val surfaceId = UIManagerHelper.getSurfaceId(reactContext)
+            val eventDispatcher = UIManagerHelper.getEventDispatcherForReactTag(reactContext, id)
+            
+            eventDispatcher?.dispatchEvent(SmartSheetEvent(surfaceId, id, name, eventData))
+        } catch (e: Exception) {
+            Log.e("SmartSheetView", "Error emitting event $name", e)
+        }
     }
 
     override fun addView(child: View, index: Int, params: android.view.ViewGroup.LayoutParams) {
         if (child === sheetContainer) {
             super.addView(child, index, params)
         } else {
-            // Redirect children to the sheet container
             sheetContainer.addView(child, index, params)
-            sheetContainer.requestLayout()
-            this.requestLayout()
         }
     }
-
-    // Do NOT override getChildDiff, getChildAt, etc. as it confuses React Native
 }
