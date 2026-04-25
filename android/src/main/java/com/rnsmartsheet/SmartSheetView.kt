@@ -48,6 +48,7 @@ class SmartSheetView(context: Context) : CoordinatorLayout(context) {
         this.setBackgroundColor(Color.TRANSPARENT)
         this.clipChildren = false
         this.clipToPadding = false
+        this.fitsSystemWindows = true
 
         super.addView(sheetContainer, -1, params)
 
@@ -102,18 +103,6 @@ class SmartSheetView(context: Context) : CoordinatorLayout(context) {
 
     private var stableHeight = 0
 
-    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        // Force full screen height even if OS tries to shrink us for keyboard
-        val targetHeight = if (stableHeight > 0) stableHeight else MeasureSpec.getSize(heightMeasureSpec)
-        val stableHeightSpec = MeasureSpec.makeMeasureSpec(targetHeight, MeasureSpec.EXACTLY)
-        super.onMeasure(widthMeasureSpec, stableHeightSpec)
-    }
-
-    override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {
-        val targetHeight = if (stableHeight > 0) stableHeight else (b - t)
-        super.onLayout(changed, l, t, r, targetHeight)
-    }
-
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
         if (keyboardHeight == 0 && h > stableHeight) {
@@ -149,8 +138,9 @@ class SmartSheetView(context: Context) : CoordinatorLayout(context) {
                 keyboardHeight = (imeInsets.bottom - systemBars.bottom).coerceAtLeast(0)
                 
                 // Real-time lift during animation
-                sheetContainer.updatePadding(bottom = keyboardHeight)
-                updateSnapPoints()
+                val params = sheetContainer.layoutParams as LayoutParams
+                params.bottomMargin = keyboardHeight
+                sheetContainer.layoutParams = params
                 return insets
             }
         }
@@ -177,25 +167,23 @@ class SmartSheetView(context: Context) : CoordinatorLayout(context) {
     }
 
     private fun handleKeyboardChange() {
-        // Prevent vanishing: if keyboard is opening, don't allow the sheet to hide automatically
+        // Prevent vanishing
         if (keyboardHeight > 0) {
             behavior.isHideable = false
         } else {
             behavior.isHideable = true
         }
 
-        // Lift the container content
-        sheetContainer.updatePadding(bottom = keyboardHeight)
-        
-        // Refresh snap points to update container height with keyboard
-        updateSnapPoints()
-        
+        // Master Native Lift: Use margins to move the entire container above the keyboard
+        val params = sheetContainer.layoutParams as LayoutParams
+        params.bottomMargin = keyboardHeight
+        sheetContainer.layoutParams = params
+
         if (keyboardBehavior == "extend" && keyboardHeight > 0 && behavior.state != BottomSheetBehavior.STATE_HIDDEN) {
             behavior.state = BottomSheetBehavior.STATE_EXPANDED
         }
         
         // Force a layout refresh
-        sheetContainer.requestLayout()
         this.requestLayout()
     }
 
@@ -220,13 +208,13 @@ class SmartSheetView(context: Context) : CoordinatorLayout(context) {
 
         val maxPoint = snapPoints.last().toInt()
         
-        // Update container height - MUST include keyboardHeight to prevent clipping
+        // Update container height
         val params = sheetContainer.layoutParams as LayoutParams
-        val neededHeight = maxPoint + keyboardHeight
+        val neededHeight = maxPoint
         if (params.height != neededHeight && neededHeight > 0) {
             params.height = neededHeight
             sheetContainer.layoutParams = params
-            Log.d("SmartSheetView", "Updated container height to $neededHeight (maxPoint: $maxPoint, keyboard: $keyboardHeight)")
+            Log.d("SmartSheetView", "Updated container height to $neededHeight (maxPoint: $maxPoint)")
         }
 
         // Configure behavior based on snap points
