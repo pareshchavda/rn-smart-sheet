@@ -102,9 +102,20 @@ class SmartSheetView(context: Context) : CoordinatorLayout(context) {
 
     private var stableHeight = 0
 
+    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+        // Force full screen height even if OS tries to shrink us for keyboard
+        val targetHeight = if (stableHeight > 0) stableHeight else MeasureSpec.getSize(heightMeasureSpec)
+        val stableHeightSpec = MeasureSpec.makeMeasureSpec(targetHeight, MeasureSpec.EXACTLY)
+        super.onMeasure(widthMeasureSpec, stableHeightSpec)
+    }
+
+    override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {
+        val targetHeight = if (stableHeight > 0) stableHeight else (b - t)
+        super.onLayout(changed, l, t, r, targetHeight)
+    }
+
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
-        // Remember the largest height we've seen (full screen height)
         if (keyboardHeight == 0 && h > stableHeight) {
             stableHeight = h
             updateSnapPoints()
@@ -166,6 +177,13 @@ class SmartSheetView(context: Context) : CoordinatorLayout(context) {
     }
 
     private fun handleKeyboardChange() {
+        // Prevent vanishing: if keyboard is opening, don't allow the sheet to hide automatically
+        if (keyboardHeight > 0) {
+            behavior.isHideable = false
+        } else {
+            behavior.isHideable = true
+        }
+
         // Lift the container content
         sheetContainer.updatePadding(bottom = keyboardHeight)
         
