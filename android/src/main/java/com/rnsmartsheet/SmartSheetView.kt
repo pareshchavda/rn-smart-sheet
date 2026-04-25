@@ -176,32 +176,24 @@ class SmartSheetView(context: Context) : CoordinatorLayout(context) {
     }
 
     private fun applyKeyboardAdjustments() {
-        // Prevent vanishing while keyboard is active
-        behavior.isHideable = keyboardHeight == 0
+        // Use padding on the CoordinatorLayout to simulate adjustResize
+        // This is safer and more stable in React Native than changing LayoutParams
+        this.setPadding(0, 0, 0, keyboardHeight)
 
-        val totalHeight = if (stableHeight > 0) stableHeight else height
-        if (totalHeight <= 0) return
-
-        val params = sheetContainer.layoutParams as LayoutParams
-        params.bottomMargin = keyboardHeight
-        
-        // Calculate the maximum height the sheet can have without being pushed off-screen
-        // Space = TotalHeight - KeyboardHeight - ExpandedOffset
-        val currentExpandedOffset = behavior.expandedOffset
-        val maxAllowedHeight = (totalHeight - keyboardHeight - currentExpandedOffset).coerceAtLeast(0)
-        
-        if (snapPoints.isNotEmpty()) {
-            val preferredHeight = snapPoints.last().toInt()
-            val finalHeight = preferredHeight.coerceAtMost(maxAllowedHeight)
-            
-            if (params.height != finalHeight && finalHeight > 0) {
-                params.height = finalHeight
-                Log.d("SmartSheetView", "Adjusting height: preferred=$preferredHeight, maxAllowed=$maxAllowedHeight, final=$finalHeight")
-            }
+        // Ensure the internal container fills the visible area
+        val innerParams = sheetContainer.layoutParams as LayoutParams
+        if (innerParams.height != LayoutParams.MATCH_PARENT) {
+            innerParams.height = LayoutParams.MATCH_PARENT
+            sheetContainer.layoutParams = innerParams
         }
+
+        // Re-trigger snap point calculation based on the VISIBLE area (total - padding)
+        val visibleHeight = if (stableHeight > 0) stableHeight - keyboardHeight else height - keyboardHeight
+        updateSnapPoints(visibleHeight.toFloat())
         
-        sheetContainer.layoutParams = params
-        this.requestLayout()
+        if (keyboardBehavior == "extend" && keyboardHeight > 0 && behavior.state != BottomSheetBehavior.STATE_HIDDEN) {
+            behavior.state = BottomSheetBehavior.STATE_EXPANDED
+        }
     }
 
     private fun setupLayoutListeners() {
@@ -216,49 +208,46 @@ class SmartSheetView(context: Context) : CoordinatorLayout(context) {
         }
     }
 
-    private fun updateSnapPoints() {
-        if (snapPoints.isEmpty()) return
-        
-        // Use current height if stableHeight is not yet captured
-        val totalHeight = (if (stableHeight > 0) stableHeight else height).toFloat()
-        if (totalHeight <= 0) return
+    private fun updateSnapPoints(forcedHeight: Float = -1f) {
+        val currentHeight = if (forcedHeight > 0) forcedHeight else height.toFloat()
+        if (currentHeight <= 0) return
 
-        val maxPoint = snapPoints.last().toInt()
-        
-        // Update container height
-        val params = sheetContainer.layoutParams as LayoutParams
-        val neededHeight = maxPoint
-        if (params.height != neededHeight && neededHeight > 0) {
-            params.height = neededHeight
-            sheetContainer.layoutParams = params
-            Log.d("SmartSheetView", "Updated container height to $neededHeight (maxPoint: $maxPoint)")
-        }
+        if (snapPoints.isNotEmpty()) {
+            val maxPoint = snapPoints.last().toInt()
+            
+            // We no longer manually set sheetContainer height here because it's MATCH_PARENT
+            // and managed by parent padding.
+            Log.d("SmartSheetView", "Snap point update: parentVisibleHeight=$currentHeight, maxPoint=$maxPoint")
 
-        // Configure behavior based on snap points
-        when (snapPoints.size) {
-            1 -> {
-                behavior.peekHeight = snapPoints[0].toInt()
-                behavior.isFitToContents = true
+            // Configure behavior based on snap points
+            when (snapPoints.size) {
+                1 -> {
+                    behavior.peekHeight = snapPoints[0].toInt()
+                    behavior.isFitToContents = false
+                    behavior.expandedOffset = (currentHeight - snapPoints[0].toFloat()).toInt().coerceAtLeast(0)
+                }
+                2 -> {
+                    behavior.peekHeight = snapPoints[0].toInt()
+                    behavior.isFitToContents = false
+                    behavior.expandedOffset = (currentHeight - snapPoints[1].toFloat()).toInt().coerceAtLeast(0)
+                }
+                else -> {
+                    behavior.peekHeight = snapPoints[0].toInt()
+                    behavior.isFitToContents = false
+                    behavior.isHideable = true
+                    
+                    // Calculate ratio for the middle point
+                    val midPoint = snapPoints[1].toFloat()
+                    behavior.halfExpandedRatio = ((currentHeight - midPoint) / currentHeight).coerceIn(0f, 1f)
+                    
+                    // Offset for the highest point
+                    val topOffset = (currentHeight - snapPoints.last().toFloat()).toInt()
+                    behavior.expandedOffset = topOffset.coerceAtLeast(0)
+                }
             }
-            2 -> {
-                behavior.peekHeight = snapPoints[0].toInt()
-                behavior.isFitToContents = true
-            }
-            else -> {
-                behavior.peekHeight = snapPoints[0].toInt()
-                behavior.isFitToContents = false
-                behavior.isHideable = true
-                
-                // Calculate ratio for the middle point
-                val midPoint = snapPoints[1].toFloat()
-                behavior.halfExpandedRatio = (totalHeight - midPoint) / totalHeight
-                
-                // Offset for the highest point
-                val topOffset = (totalHeight - snapPoints.last().toFloat()).toInt()
-                behavior.expandedOffset = topOffset.coerceAtLeast(0)
-            }
+        } else if (isDynamicSizingEnabled) {
+            updateDynamicHeight()
         }
-        applyKeyboardAdjustments()
     }
 
     private fun updateDynamicHeight() {
@@ -268,8 +257,15 @@ class SmartSheetView(context: Context) : CoordinatorLayout(context) {
         }
         
         if (contentHeight > 0) {
+            val params = sheetContainer.layoutParams as LayoutParams
+            if (params.height != LayoutParams.WRAP_CONTENT) {
+                params.height = LayoutParams.WRAP_CONTENT
+                sheetContainer.layoutParams = params
+            }
+            
             val totalNeeded = contentHeight + sheetContainer.paddingTop + sheetContainer.paddingBottom
-            behavior.peekHeight = totalNeeded
+            behavior.peekHeight = totalNeeded.coerceAtMost(height)
+            behavior.isFitToContents = true
         }
     }
 
