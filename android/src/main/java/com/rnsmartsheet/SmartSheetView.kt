@@ -137,7 +137,8 @@ class SmartSheetView(context: Context) : CoordinatorLayout(context) {
                 val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
                 val newKeyboardHeight = (imeInsets.bottom - systemBars.bottom).coerceAtLeast(0)
                 
-                if (keyboardHeight != newKeyboardHeight) {
+                // Only adjust if the change is significant to avoid jitter
+                if (Math.abs(keyboardHeight - newKeyboardHeight) > 2) {
                     keyboardHeight = newKeyboardHeight
                     // Real-time lift and resize during animation
                     applyKeyboardAdjustments()
