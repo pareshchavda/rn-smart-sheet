@@ -6,6 +6,8 @@ import android.util.Log
 import android.widget.FrameLayout
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsAnimationCompat
+import androidx.core.view.WindowInsetsAnimationCompat.Callback.DISPATCH_MODE_STOP
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
 import android.graphics.Color
@@ -111,31 +113,71 @@ class SmartSheetView(context: Context) : CoordinatorLayout(context) {
     }
 
     private fun setupInsetsListener() {
+        // Pure Native: Listen for window insets (keyboard, status bar, etc.)
         ViewCompat.setOnApplyWindowInsetsListener(this) { _, insets ->
             val imeInsets = insets.getInsets(WindowInsetsCompat.Type.ime())
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             
-            // Subtract system bars (like navigation bar) to get pure keyboard height
-            val newKeyboardHeight = (imeInsets.bottom - systemBars.bottom).coerceAtLeast(0)
+            // Calculate pure keyboard height (ime - navigation bar)
+            val newHeight = (imeInsets.bottom - systemBars.bottom).coerceAtLeast(0)
             
-            if (keyboardHeight != newKeyboardHeight) {
-                keyboardHeight = newKeyboardHeight
-                Log.d("SmartSheetView", "Keyboard height: $keyboardHeight")
+            if (keyboardHeight != newHeight) {
+                keyboardHeight = newHeight
                 handleKeyboardChange()
             }
             insets
         }
+
+        // Add support for frame-by-frame keyboard animation sync (Android 11+)
+        val callback = object : WindowInsetsAnimationCompat.Callback(DISPATCH_MODE_STOP) {
+            override fun onProgress(
+                insets: WindowInsetsCompat,
+                runningAnimations: MutableList<WindowInsetsAnimationCompat>
+            ): WindowInsetsCompat {
+                val imeInsets = insets.getInsets(WindowInsetsCompat.Type.ime())
+                val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+                keyboardHeight = (imeInsets.bottom - systemBars.bottom).coerceAtLeast(0)
+                
+                // Real-time lift during animation
+                sheetContainer.updatePadding(bottom = keyboardHeight)
+                updateSnapPoints()
+                return insets
+            }
+        }
+        ViewCompat.setWindowInsetsAnimationCallback(this, callback)
+
+        // Listen for focus changes in ANY child view (Native or React)
+        this.viewTreeObserver.addOnGlobalFocusChangeListener { _, newFocus ->
+            if (newFocus != null && isChildOf(newFocus, sheetContainer)) {
+                Log.d("SmartSheetView", "Focus detected in sheet! Lifting...")
+                if (behavior.state != BottomSheetBehavior.STATE_EXPANDED) {
+                    behavior.state = BottomSheetBehavior.STATE_EXPANDED
+                }
+            }
+        }
+    }
+
+    private fun isChildOf(view: View, parent: View): Boolean {
+        var current: View? = view
+        while (current != null) {
+            if (current == parent) return true
+            current = if (current.parent is View) current.parent as View else null
+        }
+        return false
     }
 
     private fun handleKeyboardChange() {
         // Lift the container content
         sheetContainer.updatePadding(bottom = keyboardHeight)
         
+        // Refresh snap points to update container height with keyboard
+        updateSnapPoints()
+        
         if (keyboardBehavior == "extend" && keyboardHeight > 0 && behavior.state != BottomSheetBehavior.STATE_HIDDEN) {
             behavior.state = BottomSheetBehavior.STATE_EXPANDED
         }
         
-        // Force a layout refresh with the new padding
+        // Force a layout refresh
         sheetContainer.requestLayout()
         this.requestLayout()
     }
@@ -156,13 +198,16 @@ class SmartSheetView(context: Context) : CoordinatorLayout(context) {
         if (snapPoints.isEmpty() || height == 0) return
 
         val maxPoint = snapPoints.last().toInt()
-        val totalHeight = height.toFloat()
+        val displayMetrics = context.resources.displayMetrics
+        val totalHeight = displayMetrics.heightPixels.toFloat()
         
-        // Update container height
+        // Update container height - MUST include keyboardHeight to prevent clipping
         val params = sheetContainer.layoutParams as LayoutParams
-        if (params.height != maxPoint && maxPoint > 0) {
-            params.height = maxPoint
+        val neededHeight = maxPoint + keyboardHeight
+        if (params.height != neededHeight && neededHeight > 0) {
+            params.height = neededHeight
             sheetContainer.layoutParams = params
+            Log.d("SmartSheetView", "Updated container height to $neededHeight (maxPoint: $maxPoint, keyboard: $keyboardHeight)")
         }
 
         // Configure behavior based on snap points

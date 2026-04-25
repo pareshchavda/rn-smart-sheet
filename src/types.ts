@@ -84,6 +84,7 @@ export interface BottomSheetContextValue {
     expand: () => void;
     collapse: () => void;
     close: () => void;
+    resolvedSnapPoints: number[];
 }
 
 export interface BottomSheetScrollViewProps {

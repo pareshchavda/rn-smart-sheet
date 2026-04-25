@@ -6,6 +6,7 @@ import React, {
     useMemo,
     useRef,
     useState,
+    useContext,
 } from 'react';
 import {
     Animated,
@@ -21,7 +22,8 @@ import {
     type ViewStyle,
 } from 'react-native';
 import type { BottomSheetMethods, BottomSheetProps } from '../../types';
-import { BottomSheetProvider } from '../../contexts/BottomSheetContext';
+import { BottomSheetProvider,  useBottomSheetInternal } from '../../contexts/BottomSheetContext';
+export { useBottomSheetInternal };
 import { getClosestSnapPoint, normalizeSnapPoints, normalizeSnapPoint } from '../../utils/snapPoints';
 import { BottomSheetBackdrop } from '../BottomSheetBackdrop';
 import { BottomSheetHandle } from '../BottomSheetHandle';
@@ -30,7 +32,7 @@ import RNSmartSheetView, { Commands } from '../../specs/SmartSheetNativeComponen
 const isNativeComponentAvailable = (name: string) => {
     return (
         Platform.OS !== 'web' &&
-        UIManager.getViewManagerConfig(name) != null
+        UIManager.getViewManagerConfig(name) != null    
     );
 };
 
@@ -68,8 +70,6 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
             animationConfig,
             keyboardBehavior,
             keyboardDismissMode,
-            keyboardBlurBehavior = 'none',
-            keyboardOffset = 0,
             topInset = 0,
             bottomInset = 0,
             enableHandleComponent = true,
@@ -93,11 +93,9 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
         const currentIndexRef = useRef(index);
         const currentPositionRef = useRef(0);
         const dragStartPositionRef = useRef(0);
-        const restoreIndexAfterKeyboardRef = useRef<number | null>(null);
         const hasMountedRef = useRef(false);
         const [contentHeight, setContentHeight] = useState(0);
         const [handleHeight, setHandleHeight] = useState(24);
-        const [keyboardHeight, setKeyboardHeight] = useState(0);
         const [isInternalOpen, setIsInternalOpen] = useState(index !== -1);
 
         const normalizedBaseSnapPoints = useMemo(
@@ -106,13 +104,8 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
         );
 
         const availableHeight = useMemo(() => {
-            const keyboardInset =
-                keyboardBehavior === 'extend' || keyboardBehavior === 'fillParent'
-                    ? Math.max(0, keyboardHeight - keyboardOffset)
-                    : 0;
-
-            return Math.max(0, windowHeight - topInset - bottomInset - keyboardInset);
-        }, [bottomInset, keyboardBehavior, keyboardHeight, keyboardOffset, topInset, windowHeight]);
+            return Math.max(0, windowHeight - topInset - bottomInset);
+        }, [bottomInset, topInset, windowHeight]);
 
         const dynamicSnapPoint = useMemo(() => {
             if (!enableDynamicSizing) {
@@ -159,11 +152,8 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
             () => [
                 styles.content,
                 enableDynamicSizing ? styles.contentDynamic : styles.contentFill,
-                keyboardBehavior === 'interactive' && keyboardHeight > 0
-                    ? { paddingBottom: Math.max(0, keyboardHeight - keyboardOffset) }
-                    : null,
             ],
-            [enableDynamicSizing, keyboardBehavior, keyboardHeight, keyboardOffset]
+            [enableDynamicSizing]
         );
 
         useEffect(() => {
@@ -177,19 +167,6 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
             };
         }, [animatedPosition]);
 
-        useEffect(() => {
-            const showSubscription = Keyboard.addListener('keyboardDidShow', (event) => {
-                setKeyboardHeight(event.endCoordinates.height);
-            });
-            const hideSubscription = Keyboard.addListener('keyboardDidHide', () => {
-                setKeyboardHeight(0);
-            });
-
-            return () => {
-                showSubscription.remove();
-                hideSubscription.remove();
-            };
-        }, []);
 
         const getPositionForIndex = useCallback((targetIndex: number): number => {
             if (targetIndex < 0 || resolvedSnapPoints[targetIndex] == null) {
@@ -336,8 +313,9 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
                 expand,
                 collapse,
                 close,
+                resolvedSnapPoints,
             }),
-            [animatedIndex, animatedPosition, snapToIndex, snapToPosition, expand, collapse, close]
+            [animatedIndex, animatedPosition, snapToIndex, snapToPosition, expand, collapse, close, resolvedSnapPoints]
         );
 
         const handleBackdropPress = useCallback(() => {
@@ -452,39 +430,6 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
             ]
         );
 
-        useEffect(() => {
-            if (keyboardHeight > 0) {
-                if (
-                    keyboardBlurBehavior === 'restore' &&
-                    restoreIndexAfterKeyboardRef.current == null
-                ) {
-                    restoreIndexAfterKeyboardRef.current = currentIndexRef.current;
-                }
-
-                if (
-                    (keyboardBehavior === 'extend' || keyboardBehavior === 'fillParent') &&
-                    currentIndexRef.current >= 0
-                ) {
-                    animateToIndex(resolvedSnapPoints.length - 1, true);
-                }
-
-                return;
-            }
-
-            if (
-                keyboardBlurBehavior === 'restore' &&
-                restoreIndexAfterKeyboardRef.current != null
-            ) {
-                animateToIndex(restoreIndexAfterKeyboardRef.current, true);
-                restoreIndexAfterKeyboardRef.current = null;
-            }
-        }, [
-            animateToIndex,
-            keyboardBehavior,
-            keyboardBlurBehavior,
-            keyboardHeight,
-            resolvedSnapPoints.length,
-        ]);
 
         useEffect(() => {
             if (maxSheetHeight <= 0) {
@@ -610,15 +555,12 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
     }
 );
 
+
 BottomSheetComponent.displayName = 'BottomSheet';
 
 const styles = StyleSheet.create({
     container: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0, // Keep bottom 0 but allow overflow
+        ...StyleSheet.absoluteFillObject,
         justifyContent: 'flex-end',
         zIndex: 999,
         overflow: 'visible',

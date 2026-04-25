@@ -9,7 +9,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { WebBadge } from '@/components/web-badge';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
-import { BottomSheetModal, BottomSheetView, KeyboardBehavior } from 'rn-smart-sheet';
+import { BottomSheetModal, BottomSheetView, KeyboardBehavior, BottomSheetTextInput } from 'rn-smart-sheet';
 import type { BottomSheetMethods } from 'rn-smart-sheet';
 
 function getDevMenuHint() {
@@ -105,7 +105,7 @@ export default function HomeScreen() {
                 : "This is a performant bottom sheet component with fixed snap points."}
             </ThemedText>
             
-            <TextInput 
+            <BottomSheetTextInput 
               placeholder="Focus me to test keyboard..."
               style={styles.input}
               placeholderTextColor="#8E8E93"

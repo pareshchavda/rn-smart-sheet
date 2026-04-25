@@ -48,11 +48,7 @@ export const BottomSheetModalProvider: React.FC<BottomSheetModalProviderProps> =
 
 const styles = StyleSheet.create({
     container: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        height: 4000,
+        ...StyleSheet.absoluteFillObject,
         overflow: 'visible',
     },
 });
