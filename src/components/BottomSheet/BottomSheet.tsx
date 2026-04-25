@@ -6,7 +6,6 @@ import React, {
     useMemo,
     useRef,
     useState,
-    useContext,
 } from 'react';
 import {
     Animated,
