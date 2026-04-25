@@ -135,12 +135,13 @@ class SmartSheetView(context: Context) : CoordinatorLayout(context) {
             ): WindowInsetsCompat {
                 val imeInsets = insets.getInsets(WindowInsetsCompat.Type.ime())
                 val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-                keyboardHeight = (imeInsets.bottom - systemBars.bottom).coerceAtLeast(0)
+                val newKeyboardHeight = (imeInsets.bottom - systemBars.bottom).coerceAtLeast(0)
                 
-                // Real-time lift during animation
-                val params = sheetContainer.layoutParams as LayoutParams
-                params.bottomMargin = keyboardHeight
-                sheetContainer.layoutParams = params
+                if (keyboardHeight != newKeyboardHeight) {
+                    keyboardHeight = newKeyboardHeight
+                    // Real-time lift and resize during animation
+                    applyKeyboardAdjustments()
+                }
                 return insets
             }
         }
@@ -167,23 +168,39 @@ class SmartSheetView(context: Context) : CoordinatorLayout(context) {
     }
 
     private fun handleKeyboardChange() {
-        // Prevent vanishing
-        if (keyboardHeight > 0) {
-            behavior.isHideable = false
-        } else {
-            behavior.isHideable = true
-        }
-
-        // Master Native Lift: Use margins to move the entire container above the keyboard
-        val params = sheetContainer.layoutParams as LayoutParams
-        params.bottomMargin = keyboardHeight
-        sheetContainer.layoutParams = params
+        applyKeyboardAdjustments()
 
         if (keyboardBehavior == "extend" && keyboardHeight > 0 && behavior.state != BottomSheetBehavior.STATE_HIDDEN) {
             behavior.state = BottomSheetBehavior.STATE_EXPANDED
         }
+    }
+
+    private fun applyKeyboardAdjustments() {
+        // Prevent vanishing while keyboard is active
+        behavior.isHideable = keyboardHeight == 0
+
+        val totalHeight = if (stableHeight > 0) stableHeight else height
+        if (totalHeight <= 0) return
+
+        val params = sheetContainer.layoutParams as LayoutParams
+        params.bottomMargin = keyboardHeight
         
-        // Force a layout refresh
+        // Calculate the maximum height the sheet can have without being pushed off-screen
+        // Space = TotalHeight - KeyboardHeight - ExpandedOffset
+        val currentExpandedOffset = behavior.expandedOffset
+        val maxAllowedHeight = (totalHeight - keyboardHeight - currentExpandedOffset).coerceAtLeast(0)
+        
+        if (snapPoints.isNotEmpty()) {
+            val preferredHeight = snapPoints.last().toInt()
+            val finalHeight = preferredHeight.coerceAtMost(maxAllowedHeight)
+            
+            if (params.height != finalHeight && finalHeight > 0) {
+                params.height = finalHeight
+                Log.d("SmartSheetView", "Adjusting height: preferred=$preferredHeight, maxAllowed=$maxAllowedHeight, final=$finalHeight")
+            }
+        }
+        
+        sheetContainer.layoutParams = params
         this.requestLayout()
     }
 
@@ -241,6 +258,7 @@ class SmartSheetView(context: Context) : CoordinatorLayout(context) {
                 behavior.expandedOffset = topOffset.coerceAtLeast(0)
             }
         }
+        applyKeyboardAdjustments()
     }
 
     private fun updateDynamicHeight() {
