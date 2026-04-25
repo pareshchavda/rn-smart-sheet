@@ -100,16 +100,15 @@ class SmartSheetView(context: Context) : CoordinatorLayout(context) {
         })
     }
 
-    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        val displayMetrics = context.resources.displayMetrics
-        val stableHeightSpec = MeasureSpec.makeMeasureSpec(displayMetrics.heightPixels, MeasureSpec.EXACTLY)
-        super.onMeasure(widthMeasureSpec, stableHeightSpec)
-    }
+    private var stableHeight = 0
 
-    override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {
-        val displayMetrics = context.resources.displayMetrics
-        // Force the bottom to the screen edge regardless of what the parent says
-        super.onLayout(changed, l, t, r, displayMetrics.heightPixels)
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+        // Remember the largest height we've seen (full screen height)
+        if (keyboardHeight == 0 && h > stableHeight) {
+            stableHeight = h
+            updateSnapPoints()
+        }
     }
 
     private fun setupInsetsListener() {
@@ -195,11 +194,13 @@ class SmartSheetView(context: Context) : CoordinatorLayout(context) {
     }
 
     private fun updateSnapPoints() {
-        if (snapPoints.isEmpty() || height == 0) return
+        if (snapPoints.isEmpty()) return
+        
+        // Use current height if stableHeight is not yet captured
+        val totalHeight = (if (stableHeight > 0) stableHeight else height).toFloat()
+        if (totalHeight <= 0) return
 
         val maxPoint = snapPoints.last().toInt()
-        val displayMetrics = context.resources.displayMetrics
-        val totalHeight = displayMetrics.heightPixels.toFloat()
         
         // Update container height - MUST include keyboardHeight to prevent clipping
         val params = sheetContainer.layoutParams as LayoutParams
