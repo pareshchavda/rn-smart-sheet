@@ -1,12 +1,39 @@
 -- Merging decision tree log ---
 manifest
-ADDED from C:\Project\bottom-sheet\android\src\main\AndroidManifest.xml:1:1-3:12
-INJECTED from C:\Project\bottom-sheet\android\src\main\AndroidManifest.xml:1:1-3:12
+ADDED from C:\Project\bottom-sheet\android\src\main\AndroidManifest.xml:1:1-15:12
+INJECTED from C:\Project\bottom-sheet\android\src\main\AndroidManifest.xml:1:1-15:12
 	package
-		ADDED from C:\Project\bottom-sheet\android\src\main\AndroidManifest.xml:2:5-31
 		INJECTED from C:\Project\bottom-sheet\android\src\main\AndroidManifest.xml
 	xmlns:android
 		ADDED from C:\Project\bottom-sheet\android\src\main\AndroidManifest.xml:1:11-69
+application
+ADDED from C:\Project\bottom-sheet\android\src\main\AndroidManifest.xml:2:5-14:19
+activity#com.rnsmartsheet.SmartSheetViewManager
+ADDED from C:\Project\bottom-sheet\android\src\main\AndroidManifest.xml:3:9-13:20
+	android:exported
+		ADDED from C:\Project\bottom-sheet\android\src\main\AndroidManifest.xml:5:13-37
+	android:name
+		ADDED from C:\Project\bottom-sheet\android\src\main\AndroidManifest.xml:4:13-50
+intent-filter#action:name:android.intent.action.VIEW+category:name:android.intent.category.BROWSABLE+category:name:android.intent.category.DEFAULT+data:host:rnsmartsheet.com+data:scheme:http
+ADDED from C:\Project\bottom-sheet\android\src\main\AndroidManifest.xml:6:13-12:29
+action#android.intent.action.VIEW
+ADDED from C:\Project\bottom-sheet\android\src\main\AndroidManifest.xml:7:17-69
+	android:name
+		ADDED from C:\Project\bottom-sheet\android\src\main\AndroidManifest.xml:7:25-66
+category#android.intent.category.DEFAULT
+ADDED from C:\Project\bottom-sheet\android\src\main\AndroidManifest.xml:8:17-76
+	android:name
+		ADDED from C:\Project\bottom-sheet\android\src\main\AndroidManifest.xml:8:27-73
+category#android.intent.category.BROWSABLE
+ADDED from C:\Project\bottom-sheet\android\src\main\AndroidManifest.xml:9:17-78
+	android:name
+		ADDED from C:\Project\bottom-sheet\android\src\main\AndroidManifest.xml:9:27-75
+data
+ADDED from C:\Project\bottom-sheet\android\src\main\AndroidManifest.xml:10:17-47
+	android:host
+		ADDED from C:\Project\bottom-sheet\android\src\main\AndroidManifest.xml:11:23-54
+	android:scheme
+		ADDED from C:\Project\bottom-sheet\android\src\main\AndroidManifest.xml:10:23-44
 uses-sdk
 INJECTED from C:\Project\bottom-sheet\android\src\main\AndroidManifest.xml reason: use-sdk injection requested
 INJECTED from C:\Project\bottom-sheet\android\src\main\AndroidManifest.xml

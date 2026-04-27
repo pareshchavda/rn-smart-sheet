@@ -110,6 +110,11 @@ class SmartSheetViewManager : ViewGroupManager<SmartSheetView>(), RNSmartSheetVi
     override fun setSpringConfig(view: SmartSheetView, value: ReadableMap?) {
     }
 
+    @ReactProp(name = "contentHeight")
+    override fun setContentHeight(view: SmartSheetView, value: Double) {
+        view.setContentHeight(value.toFloat())
+    }
+
     override fun snapToIndex(view: SmartSheetView, index: Int) {
         Log.d(REACT_CLASS, "snapToIndex: $index")
         view.post {

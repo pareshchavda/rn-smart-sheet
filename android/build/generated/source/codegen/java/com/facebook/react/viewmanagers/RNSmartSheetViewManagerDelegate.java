@@ -52,6 +52,9 @@ public class RNSmartSheetViewManagerDelegate<T extends View, U extends BaseViewM
       case "springConfig":
         mViewManager.setSpringConfig(view, (ReadableMap) value);
         break;
+      case "contentHeight":
+        mViewManager.setContentHeight(view, value == null ? 0f : ((Double) value).doubleValue());
+        break;
       default:
         super.setProperty(view, propName, value);
     }

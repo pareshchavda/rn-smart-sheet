@@ -4,4 +4,35 @@
 4
 5    <uses-sdk android:minSdkVersion="24" />
 6
-7</manifest>
+7    <application>
+7-->C:\Project\bottom-sheet\android\src\main\AndroidManifest.xml:2:5-14:19
+8        <activity
+8-->C:\Project\bottom-sheet\android\src\main\AndroidManifest.xml:3:9-13:20
+9            android:name="com.rnsmartsheet.SmartSheetViewManager"
+9-->C:\Project\bottom-sheet\android\src\main\AndroidManifest.xml:4:13-50
+10            android:exported="false" >
+10-->C:\Project\bottom-sheet\android\src\main\AndroidManifest.xml:5:13-37
+11            <intent-filter>
+11-->C:\Project\bottom-sheet\android\src\main\AndroidManifest.xml:6:13-12:29
+12                <action android:name="android.intent.action.VIEW" />
+12-->C:\Project\bottom-sheet\android\src\main\AndroidManifest.xml:7:17-69
+12-->C:\Project\bottom-sheet\android\src\main\AndroidManifest.xml:7:25-66
+13
+14                <category android:name="android.intent.category.DEFAULT" />
+14-->C:\Project\bottom-sheet\android\src\main\AndroidManifest.xml:8:17-76
+14-->C:\Project\bottom-sheet\android\src\main\AndroidManifest.xml:8:27-73
+15                <category android:name="android.intent.category.BROWSABLE" />
+15-->C:\Project\bottom-sheet\android\src\main\AndroidManifest.xml:9:17-78
+15-->C:\Project\bottom-sheet\android\src\main\AndroidManifest.xml:9:27-75
+16
+17                <data android:scheme="http" />
+17-->C:\Project\bottom-sheet\android\src\main\AndroidManifest.xml:10:17-47
+17-->C:\Project\bottom-sheet\android\src\main\AndroidManifest.xml:10:23-44
+18                <data android:host="rnsmartsheet.com" />
+18-->C:\Project\bottom-sheet\android\src\main\AndroidManifest.xml:10:17-47
+18-->C:\Project\bottom-sheet\android\src\main\AndroidManifest.xml:11:23-54
+19            </intent-filter>
+20        </activity>
+21    </application>
+22
+23</manifest>

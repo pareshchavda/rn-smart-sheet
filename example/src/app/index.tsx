@@ -9,7 +9,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { WebBadge } from '@/components/web-badge';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
-import { BottomSheetModal, BottomSheetView, KeyboardBehavior, BottomSheetTextInput } from 'rn-smart-sheet';
+import { BottomSheetModal, BottomSheetView, KeyboardBehavior, BottomSheetTextInput, BottomSheetFlatList } from 'rn-smart-sheet';
 import type { BottomSheetMethods } from 'rn-smart-sheet';
 
 function getDevMenuHint() {
@@ -112,7 +112,7 @@ export default function HomeScreen() {
               <View style={styles.chatListContainer}>
                 {/* On Android, nested scrolling works naturally with BottomSheetBehavior */}
                 <BottomSheetView style={{ flex: 1 }}>
-                  <FlatList
+                  <BottomSheetFlatList
                     data={chatData}
                     keyExtractor={(item) => item.id.toString()}
                     renderItem={({ item }) => (
@@ -121,8 +121,6 @@ export default function HomeScreen() {
                       </View>
                     )}
                     contentContainerStyle={styles.chatListContent}
-                    style={{ flex: 1 }}
-                    removeClippedSubviews={Platform.OS === 'android'}
                     initialNumToRender={15}
                     windowSize={5}
                   />

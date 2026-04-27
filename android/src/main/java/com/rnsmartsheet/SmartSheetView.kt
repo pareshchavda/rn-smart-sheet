@@ -24,17 +24,19 @@ import com.google.android.material.bottomsheet.BottomSheetBehavior
 class SmartSheetView(context: Context) : CoordinatorLayout(context) {
 
     private val sheetContainer: FrameLayout = FrameLayout(context)
-    val behavior: BottomSheetBehavior<FrameLayout> = BottomSheetBehavior()
+    val behavior: BottomSheetBehavior<FrameLayout> = BottomSheetBehavior<FrameLayout>()
     
     private var isDynamicSizingEnabled = false
     private var keyboardBehavior = "interactive"
     private var keyboardHeight = 0
     private var snapPoints: List<Double> = emptyList()
     private var lastIndex = -1
+    private var stableHeight = 0
+    private var isInteracting = false
 
     init {
-        // Configure the container
-        val params = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
+        // Setup the container with the BottomSheetBehavior
+        val params = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
         params.behavior = behavior
         
         behavior.isHideable = true
@@ -44,18 +46,71 @@ class SmartSheetView(context: Context) : CoordinatorLayout(context) {
         sheetContainer.layoutParams = params
         sheetContainer.setBackgroundColor(Color.TRANSPARENT)
         
-        // Transparent background for the coordinator to avoid blocking background
+        this.addView(sheetContainer)
+        
         this.setBackgroundColor(Color.TRANSPARENT)
         this.clipChildren = false
         this.clipToPadding = false
-        this.fitsSystemWindows = true
-
-        super.addView(sheetContainer, -1, params)
+        this.fitsSystemWindows = false // Manual handling is more reliable in RN
 
         setupBehaviorListeners()
         setupInsetsListener()
         setupLayoutListeners()
-        setupTouchHandling()
+    }
+
+    override fun dispatchTouchEvent(ev: android.view.MotionEvent): Boolean {
+        when (ev.actionMasked) {
+            android.view.MotionEvent.ACTION_DOWN -> isInteracting = true
+            android.view.MotionEvent.ACTION_UP, android.view.MotionEvent.ACTION_CANCEL -> isInteracting = false
+        }
+        return super.dispatchTouchEvent(ev)
+    }
+
+    private var initialY = 0f
+    override fun onInterceptTouchEvent(ev: android.view.MotionEvent): Boolean {
+        if (!behavior.isDraggable) return super.onInterceptTouchEvent(ev)
+
+        when (ev.actionMasked) {
+            android.view.MotionEvent.ACTION_DOWN -> initialY = ev.rawY
+            android.view.MotionEvent.ACTION_MOVE -> {
+                val deltaY = ev.rawY - initialY
+                if (deltaY > 0) { // Pulling down
+                    // Check if we have a scrollable child and if it's NOT at the top
+                    val scrollableChild = findScrollableChildUnder(ev.x, ev.y)
+                    if (scrollableChild != null && scrollableChild.canScrollVertically(-1)) {
+                        // The list is scrolled, so let it handle the pull down
+                        return false 
+                    }
+                }
+            }
+        }
+        return super.onInterceptTouchEvent(ev)
+    }
+
+    private fun findScrollableChildUnder(x: Float, y: Float): View? {
+        return findScrollableChildRecursive(sheetContainer, x, y)
+    }
+
+    private fun findScrollableChildRecursive(view: View, x: Float, y: Float): View? {
+        if (view is ViewGroup) {
+            for (i in view.childCount - 1 downTo 0) {
+                val child = view.getChildAt(i)
+                if (child.visibility != View.VISIBLE) continue
+                
+                val location = IntArray(2)
+                child.getLocationOnScreen(location)
+                if (x >= location[0] && x <= location[0] + child.width &&
+                    y >= location[1] && y <= location[1] + child.height) {
+                    
+                    val result = findScrollableChildRecursive(child, x, y)
+                    if (result != null) return result
+                }
+            }
+        }
+        if (view.canScrollVertically(1) || view.canScrollVertically(-1)) {
+            return view
+        }
+        return null
     }
 
     private fun setupTouchHandling() {
@@ -100,8 +155,6 @@ class SmartSheetView(context: Context) : CoordinatorLayout(context) {
             }
         })
     }
-
-    private var stableHeight = 0
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
@@ -177,9 +230,20 @@ class SmartSheetView(context: Context) : CoordinatorLayout(context) {
     }
 
     private fun applyKeyboardAdjustments() {
-        // Use padding on the CoordinatorLayout to simulate adjustResize
-        // This is safer and more stable in React Native than changing LayoutParams
-        this.setPadding(0, 0, 0, keyboardHeight)
+        // PRODUCTION FIX: Use actual height resizing instead of padding.
+        // This forces BottomSheetBehavior to see the reduced workspace.
+        val totalHeight = if (stableHeight > 0) stableHeight else height + paddingBottom
+        val targetHeight = totalHeight - keyboardHeight
+        
+        if (this.layoutParams.height != targetHeight) {
+            this.layoutParams.height = targetHeight
+            this.requestLayout()
+        }
+
+        // Reset padding as we are using height now
+        if (this.paddingBottom != 0) {
+            this.setPadding(0, 0, 0, 0)
+        }
 
         // Ensure the internal container fills the visible area
         val innerParams = sheetContainer.layoutParams as LayoutParams
@@ -193,13 +257,18 @@ class SmartSheetView(context: Context) : CoordinatorLayout(context) {
         updateSnapPoints(visibleHeight.toFloat())
         
         if (keyboardBehavior == "extend" && keyboardHeight > 0 && behavior.state != BottomSheetBehavior.STATE_HIDDEN) {
-            behavior.state = BottomSheetBehavior.STATE_EXPANDED
+            if (behavior.state != BottomSheetBehavior.STATE_EXPANDED) {
+                behavior.state = BottomSheetBehavior.STATE_EXPANDED
+            }
         }
     }
 
     private fun setupLayoutListeners() {
         this.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
-            updateSnapPoints()
+            // Only update if not interacting to avoid flicker during touch
+            if (!isInteracting) {
+                updateSnapPoints()
+            }
         }
         
         sheetContainer.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
@@ -210,7 +279,8 @@ class SmartSheetView(context: Context) : CoordinatorLayout(context) {
     }
 
     private fun updateSnapPoints(forcedHeight: Float = -1f) {
-        val currentHeight = if (forcedHeight > 0) forcedHeight else height.toFloat()
+        val visibleHeight = height - paddingBottom
+        val currentHeight = if (forcedHeight > 0) forcedHeight else visibleHeight.toFloat()
         if (currentHeight <= 0) return
 
         if (snapPoints.isNotEmpty()) {
@@ -223,27 +293,54 @@ class SmartSheetView(context: Context) : CoordinatorLayout(context) {
             // Configure behavior based on snap points
             when (snapPoints.size) {
                 1 -> {
-                    behavior.peekHeight = snapPoints[0].toInt()
-                    behavior.isFitToContents = false
-                    behavior.expandedOffset = (currentHeight - snapPoints[0].toFloat()).toInt().coerceAtLeast(0)
+                    val peekHeight = snapPoints[0].toInt()
+                    if (behavior.peekHeight != peekHeight) {
+                        behavior.peekHeight = peekHeight
+                    }
+                    if (behavior.isFitToContents) {
+                        behavior.isFitToContents = false
+                    }
+                    val expandedOffset = (currentHeight - snapPoints[0].toFloat()).toInt().coerceAtLeast(0)
+                    if (behavior.expandedOffset != expandedOffset) {
+                        behavior.expandedOffset = expandedOffset
+                    }
                 }
                 2 -> {
-                    behavior.peekHeight = snapPoints[0].toInt()
-                    behavior.isFitToContents = false
-                    behavior.expandedOffset = (currentHeight - snapPoints[1].toFloat()).toInt().coerceAtLeast(0)
+                    val peekHeight = snapPoints[0].toInt()
+                    if (behavior.peekHeight != peekHeight) {
+                        behavior.peekHeight = peekHeight
+                    }
+                    if (behavior.isFitToContents) {
+                        behavior.isFitToContents = false
+                    }
+                    val expandedOffset = (currentHeight - snapPoints[1].toFloat()).toInt().coerceAtLeast(0)
+                    if (behavior.expandedOffset != expandedOffset) {
+                        behavior.expandedOffset = expandedOffset
+                    }
                 }
                 else -> {
-                    behavior.peekHeight = snapPoints[0].toInt()
-                    behavior.isFitToContents = false
+                    val peekHeight = snapPoints[0].toInt()
+                    if (behavior.peekHeight != peekHeight) {
+                        behavior.peekHeight = peekHeight
+                    }
+                    if (behavior.isFitToContents) {
+                        behavior.isFitToContents = false
+                    }
                     behavior.isHideable = true
                     
                     // Calculate ratio for the middle point
                     val midPoint = snapPoints[1].toFloat()
-                    behavior.halfExpandedRatio = ((currentHeight - midPoint) / currentHeight).coerceIn(0f, 1f)
+                    val halfExpandedRatio = ((currentHeight - midPoint) / currentHeight).coerceIn(0f, 1f)
+                    if (behavior.halfExpandedRatio != halfExpandedRatio) {
+                        behavior.halfExpandedRatio = halfExpandedRatio
+                    }
                     
                     // Offset for the highest point
                     val topOffset = (currentHeight - snapPoints.last().toFloat()).toInt()
-                    behavior.expandedOffset = topOffset.coerceAtLeast(0)
+                    val expandedOffset = topOffset.coerceAtLeast(0)
+                    if (behavior.expandedOffset != expandedOffset) {
+                        behavior.expandedOffset = expandedOffset
+                    }
                 }
             }
         } else if (isDynamicSizingEnabled) {
@@ -251,13 +348,20 @@ class SmartSheetView(context: Context) : CoordinatorLayout(context) {
         }
     }
 
+    private var externalContentHeight = 0f
+
     private fun updateDynamicHeight() {
-        var contentHeight = 0
-        for (i in 0 until sheetContainer.childCount) {
-            contentHeight += sheetContainer.getChildAt(i).measuredHeight
+        // PRODUCTION FIX: Use external height from JS if available, 
+        // as it's more accurate for React Native views.
+        var contentHeight = if (externalContentHeight > 0) externalContentHeight else 0f
+        
+        if (contentHeight <= 0f) {
+            for (i in 0 until sheetContainer.childCount) {
+                contentHeight += sheetContainer.getChildAt(i).measuredHeight.toFloat()
+            }
         }
         
-        if (contentHeight > 0) {
+        if (contentHeight > 0f) {
             val params = sheetContainer.layoutParams as LayoutParams
             if (params.height != LayoutParams.WRAP_CONTENT) {
                 params.height = LayoutParams.WRAP_CONTENT
@@ -265,8 +369,17 @@ class SmartSheetView(context: Context) : CoordinatorLayout(context) {
             }
             
             val totalNeeded = contentHeight + sheetContainer.paddingTop + sheetContainer.paddingBottom
-            behavior.peekHeight = totalNeeded.coerceAtMost(height)
+            behavior.peekHeight = totalNeeded.toInt().coerceAtMost(height)
             behavior.isFitToContents = true
+        }
+    }
+
+    fun setContentHeight(height: Float) {
+        if (Math.abs(this.externalContentHeight - height) > 1) {
+            this.externalContentHeight = height
+            if (isDynamicSizingEnabled) {
+                updateDynamicHeight()
+            }
         }
     }
 

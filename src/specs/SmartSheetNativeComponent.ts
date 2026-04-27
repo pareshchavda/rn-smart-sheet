@@ -48,6 +48,7 @@ export interface NativeProps extends ViewProps {
     keyboardBehavior?: WithDefault<string, 'interactive'>;
     keyboardDismissMode?: WithDefault<string, 'on-drag'>;
     springConfig?: SpringConfig;
+    contentHeight?: Double;
     onSheetChange?: DirectEventHandler<SheetChangeEvent>;
     onSheetAnimate?: DirectEventHandler<SheetAnimateEvent>;
     onSheetPositionChange?: DirectEventHandler<SheetPositionEvent>;

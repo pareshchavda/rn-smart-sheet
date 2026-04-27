@@ -507,6 +507,7 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
                         onSheetChange={handleNativeChange}
                         onSheetAnimate={handleNativeAnimate}
                         onSheetPositionChange={handleNativePositionChange}
+                        contentHeight={contentHeight}
                     >
                         <View style={[styles.background, backgroundStyle]}>
                             {renderHandle}

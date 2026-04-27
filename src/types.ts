@@ -1,5 +1,5 @@
 import type { ReactNode, RefObject, ComponentType } from 'react';
-import { Animated, type ViewStyle, type StyleProp } from 'react-native';
+import { Animated, type ViewStyle, type StyleProp, type FlatListProps } from 'react-native';
 
 export type WithSpringConfig = Record<string, any>;
 
@@ -91,6 +91,10 @@ export interface BottomSheetScrollViewProps {
     children?: ReactNode;
     style?: StyleProp<ViewStyle>;
     contentContainerStyle?: StyleProp<ViewStyle>;
+    focusHook?: RefObject<any>;
+}
+
+export interface BottomSheetFlatListProps<T = any> extends FlatListProps<T> {
     focusHook?: RefObject<any>;
 }
 

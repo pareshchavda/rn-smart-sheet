@@ -102,6 +102,7 @@ class RNSmartSheetViewProps final : public ViewProps {
   std::string keyboardBehavior{std::string{"interactive"}};
   std::string keyboardDismissMode{std::string{"on-drag"}};
   RNSmartSheetViewSpringConfigStruct springConfig{};
+  double contentHeight{0.0};
 
   #ifdef RN_SERIALIZABLE_STATE
   ComponentName getDiffPropsImplementationTarget() const override;

@@ -1,5 +1,6 @@
 import React, { forwardRef } from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
+import { ScrollView } from 'react-native-gesture-handler';
 import type { BottomSheetScrollViewProps } from '../../types';
 
 const BottomSheetScrollViewComponent = forwardRef<
