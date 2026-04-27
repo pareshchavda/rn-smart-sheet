@@ -499,23 +499,25 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
                             style={StyleSheet.absoluteFill}
                             snapPoints={nativeSnapPoints}
                             initialIndex={index}
-                        enablePanDownToClose={enablePanDownToClose}
-                        enableGesture={enableGesture}
-                        enableDynamicSizing={enableDynamicSizing}
-                        keyboardBehavior={keyboardBehavior}
-                        keyboardDismissMode={keyboardDismissMode}
-                        onSheetChange={handleNativeChange}
-                        onSheetAnimate={handleNativeAnimate}
-                        onSheetPositionChange={handleNativePositionChange}
-                        contentHeight={contentHeight}
-                    >
-                        <View style={[styles.background, backgroundStyle]}>
-                            {renderHandle}
-                            <View onLayout={handleContentLayout} style={contentContainerStyle}>
-                                {children}
+                            enablePanDownToClose={enablePanDownToClose}
+                            enableGesture={enableGesture}
+                            enableDynamicSizing={enableDynamicSizing}
+                            keyboardBehavior={keyboardBehavior}
+                            keyboardDismissMode={keyboardDismissMode}
+                            onSheetChange={handleNativeChange}
+                            onSheetAnimate={handleNativeAnimate}
+                            onSheetPositionChange={handleNativePositionChange}
+                            contentHeight={contentHeight}
+                            footerHeight={footerHeight}
+                        >
+                            <View style={[styles.background, backgroundStyle]}>
+                                {renderHandle}
+                                <View onLayout={handleContentLayout} style={contentContainerStyle}>
+                                    {children}
+                                </View>
+                                {renderFooter}
                             </View>
-                        </View>
-                    </RNSmartSheetView>
+                        </RNSmartSheetView>
                     </View>
                 </BottomSheetProvider>
             );
