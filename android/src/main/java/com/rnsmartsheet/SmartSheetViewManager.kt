@@ -115,6 +115,11 @@ class SmartSheetViewManager : ViewGroupManager<SmartSheetView>(), RNSmartSheetVi
         view.setContentHeight(value.toFloat())
     }
 
+    @ReactProp(name = "footerHeight")
+    override fun setFooterHeight(view: SmartSheetView, value: Double) {
+        view.setFooterHeight(value.toFloat())
+    }
+
     override fun snapToIndex(view: SmartSheetView, index: Int) {
         Log.d(REACT_CLASS, "snapToIndex: $index")
         view.post {

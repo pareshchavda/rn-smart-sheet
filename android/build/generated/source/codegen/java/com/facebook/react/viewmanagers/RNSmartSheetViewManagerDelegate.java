@@ -55,6 +55,9 @@ public class RNSmartSheetViewManagerDelegate<T extends View, U extends BaseViewM
       case "contentHeight":
         mViewManager.setContentHeight(view, value == null ? 0f : ((Double) value).doubleValue());
         break;
+      case "footerHeight":
+        mViewManager.setFooterHeight(view, value == null ? 0f : ((Double) value).doubleValue());
+        break;
       default:
         super.setProperty(view, propName, value);
     }

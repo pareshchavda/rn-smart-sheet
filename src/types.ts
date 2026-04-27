@@ -1,6 +1,5 @@
 import type { ReactNode, RefObject, ComponentType } from 'react';
 import { Animated, type ViewStyle, type StyleProp, type FlatListProps } from 'react-native';
-import type { SharedValue } from 'react-native-reanimated';
 
 export type WithSpringConfig = Record<string, any>;
 
@@ -79,7 +78,7 @@ export interface BottomSheetHandleProps {
 }
 
 export interface BottomSheetFooterProps {
-    animatedFooterPosition: SharedValue<number>;
+    animatedFooterPosition: Animated.Value;
     children?: ReactNode;
     style?: StyleProp<ViewStyle>;
 }

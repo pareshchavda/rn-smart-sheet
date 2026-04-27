@@ -6,6 +6,9 @@
       "@/*": [
         "./src/*"
       ],
+      "rn-smart-sheet": [
+        "../src/index.ts"
+      ],
       "@/assets/*": [
         "./assets/*"
       ]

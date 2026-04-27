@@ -6,8 +6,38 @@ import * as Device from 'expo-device';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
-import { BottomSheetModal, BottomSheetView, KeyboardBehavior, BottomSheetTextInput, BottomSheetFlatList } from 'rn-smart-sheet';
-import type { BottomSheetMethods } from 'rn-smart-sheet';
+import { BottomSheetModal, BottomSheetView, KeyboardBehavior, BottomSheetTextInput, BottomSheetFlatList, BottomSheetFooter } from 'rn-smart-sheet';
+import type { BottomSheetMethods, BottomSheetFooterProps } from 'rn-smart-sheet';
+
+interface CustomFooterProps extends BottomSheetFooterProps {
+  value: string;
+  onChangeText: (text: string) => void;
+  onSend: () => void;
+}
+
+const CommentFooter = (props: CustomFooterProps) => (
+  <BottomSheetFooter {...props} style={styles.footerContainer}>
+    <View style={styles.commentInputContainer}>
+      <BottomSheetTextInput 
+        placeholder="Write a comment..."
+        style={styles.commentInput}
+        placeholderTextColor="#8E8E93"
+        value={props.value}
+        onChangeText={props.onChangeText}
+      />
+      <Pressable 
+        style={({ pressed }) => [
+          styles.sendButton,
+          { opacity: pressed || !props.value.trim() ? 0.6 : 1 }
+        ]}
+        onPress={props.onSend}
+        disabled={!props.value.trim()}
+      >
+        <ThemedText style={{ color: '#FFF', fontWeight: 'bold' }}>Send</ThemedText>
+      </Pressable>
+    </View>
+  </BottomSheetFooter>
+);
 
 export default function HomeScreen() {
   const basicSheetRef = useRef<BottomSheetMethods>(null);
@@ -15,8 +45,41 @@ export default function HomeScreen() {
   const dynamicSheetRef = useRef<BottomSheetMethods>(null);
   const contactSheetRef = useRef<BottomSheetMethods>(null);
   const settingsSheetRef = useRef<BottomSheetMethods>(null);
+  const commentSheetRef = useRef<BottomSheetMethods>(null);
   
   const [keyboardBehavior, setKeyboardBehavior] = useState<KeyboardBehavior>(KeyboardBehavior.INTERACTIVE);
+  const [commentText, setCommentText] = useState('');
+  const [comments, setComments] = useState([
+    { id: 1, text: 'This is an awesome bottom sheet! 🔥', user: 'DesignGuru' },
+    { id: 2, text: 'The footer works perfectly with the keyboard.', user: 'ReactDev' },
+  ]);
+
+  const handleAddComment = useCallback(() => {
+    if (!commentText.trim()) return;
+    
+    const newComment = {
+      id: Date.now(),
+      text: commentText.trim(),
+      user: 'Me',
+    };
+    
+    setComments(prev => [newComment, ...prev]);
+    setCommentText('');
+    // Optional: Keep keyboard open or dismiss
+  }, [commentText]);
+
+  const renderCommentFooter = useCallback(
+    (props: BottomSheetFooterProps) => (
+      <CommentFooter 
+        {...props} 
+        value={commentText}
+        onChangeText={setCommentText}
+        onSend={handleAddComment}
+      />
+    ),
+    [commentText, handleAddComment]
+  );
+
   const chatData = useMemo(() => Array.from({ length: 50 }, (_, i) => ({ id: i, text: `Message ${i + 1}` })), []);
   const contacts = useMemo(() => [
     { id: 1, name: 'John Doe', status: 'Online' },
@@ -88,6 +151,16 @@ export default function HomeScreen() {
               ]}
             >
               <ThemedText style={styles.buttonText}>⚙️ Settings</ThemedText>
+            </Pressable>
+            
+            <Pressable 
+              onPress={() => commentSheetRef.current?.expand()}
+              style={({ pressed }) => [
+                styles.exampleButton,
+                { backgroundColor: '#FF2D55', opacity: pressed ? 0.7 : 1 }
+              ]}
+            >
+              <ThemedText style={styles.buttonText}>💬 Comments</ThemedText>
             </Pressable>
           </View>
         </ThemedView>
@@ -273,6 +346,29 @@ export default function HomeScreen() {
             </Pressable>
           </BottomSheetView>
         </BottomSheetModal>
+        {/* Comments Sheet */}
+        <BottomSheetModal
+          ref={commentSheetRef}
+          index={-1}
+          snapPoints={['60%', '95%']}
+          enablePanDownToClose={true}
+          footerComponent={renderCommentFooter}
+        >
+          <View style={styles.chatContainer}>
+            <ThemedText type="subtitle" style={styles.chatHeader}>💬 Comments</ThemedText>
+            <BottomSheetFlatList
+              data={comments}
+              keyExtractor={(item) => item.id.toString()}
+              renderItem={({ item }) => (
+                <View style={[styles.chatMessage, { alignSelf: 'stretch', maxWidth: '100%' }]}>
+                  <ThemedText style={{ fontWeight: 'bold' }}>{item.user}</ThemedText>
+                  <ThemedText>{item.text}</ThemedText>
+                </View>
+              )}
+              contentContainerStyle={[styles.chatListContent, { paddingBottom: 100 }]}
+            />
+          </View>
+        </BottomSheetModal>
       </SafeAreaView>
     </ThemedView>
   );
@@ -391,6 +487,32 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 12,
     backgroundColor: '#D1D5DB',
+  },
+  footerContainer: {
+    padding: Spacing.four,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  commentInputContainer: {
+    flexDirection: 'row',
+    gap: Spacing.two,
+    alignItems: 'center',
+  },
+  commentInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 20,
+    paddingHorizontal: Spacing.four,
+    paddingVertical: Spacing.two,
+    backgroundColor: '#F9FAFB',
+  },
+  sendButton: {
+    backgroundColor: '#FF2D55',
+    paddingHorizontal: Spacing.four,
+    paddingVertical: Spacing.two,
+    borderRadius: 20,
   },
   chatContainer: {
     flex: 1,

@@ -1,10 +1,5 @@
 import React, { memo } from 'react';
-import { StyleSheet } from 'react-native';
-import Animated, { 
-    useAnimatedStyle, 
-    interpolate, 
-    Extrapolate 
-} from 'react-native-reanimated';
+import { StyleSheet, Animated } from 'react-native';
 import type { BottomSheetFooterProps } from '../../types';
 
 const BottomSheetFooterComponent = ({
@@ -12,24 +7,20 @@ const BottomSheetFooterComponent = ({
     children,
     style,
 }: BottomSheetFooterProps) => {
-    const containerAnimatedStyle = useAnimatedStyle(() => {
-        if (!animatedFooterPosition) {
-            return {};
-        }
-
-        return {
-            transform: [
-                {
-                    translateY: animatedFooterPosition.value,
-                },
-            ],
-        };
-    });
-
     return (
         <Animated.View
             pointerEvents="box-none"
-            style={[styles.container, style, containerAnimatedStyle]}
+            style={[
+                styles.container, 
+                style, 
+                animatedFooterPosition ? {
+                    transform: [
+                        {
+                            translateY: animatedFooterPosition,
+                        },
+                    ],
+                } : {}
+            ]}
         >
             {children}
         </Animated.View>

@@ -349,6 +349,7 @@ class SmartSheetView(context: Context) : CoordinatorLayout(context) {
     }
 
     private var externalContentHeight = 0f
+    private var externalFooterHeight = 0f
 
     private fun updateDynamicHeight() {
         // PRODUCTION FIX: Use external height from JS if available, 
@@ -368,7 +369,7 @@ class SmartSheetView(context: Context) : CoordinatorLayout(context) {
                 sheetContainer.layoutParams = params
             }
             
-            val totalNeeded = contentHeight + sheetContainer.paddingTop + sheetContainer.paddingBottom
+            val totalNeeded = contentHeight + externalFooterHeight + sheetContainer.paddingTop + sheetContainer.paddingBottom
             behavior.peekHeight = totalNeeded.toInt().coerceAtMost(height)
             behavior.isFitToContents = true
         }
@@ -377,6 +378,15 @@ class SmartSheetView(context: Context) : CoordinatorLayout(context) {
     fun setContentHeight(height: Float) {
         if (Math.abs(this.externalContentHeight - height) > 1) {
             this.externalContentHeight = height
+            if (isDynamicSizingEnabled) {
+                updateDynamicHeight()
+            }
+        }
+    }
+
+    fun setFooterHeight(height: Float) {
+        if (Math.abs(this.externalFooterHeight - height) > 1) {
+            this.externalFooterHeight = height
             if (isDynamicSizingEnabled) {
                 updateDynamicHeight()
             }

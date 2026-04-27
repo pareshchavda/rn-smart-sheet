@@ -28,7 +28,8 @@ RNSmartSheetViewProps::RNSmartSheetViewProps(
     keyboardBehavior(convertRawProp(context, rawProps, "keyboardBehavior", sourceProps.keyboardBehavior, {std::string{"interactive"}})),
     keyboardDismissMode(convertRawProp(context, rawProps, "keyboardDismissMode", sourceProps.keyboardDismissMode, {std::string{"on-drag"}})),
     springConfig(convertRawProp(context, rawProps, "springConfig", sourceProps.springConfig, {})),
-    contentHeight(convertRawProp(context, rawProps, "contentHeight", sourceProps.contentHeight, {0.0})) {}
+    contentHeight(convertRawProp(context, rawProps, "contentHeight", sourceProps.contentHeight, {0.0})),
+    footerHeight(convertRawProp(context, rawProps, "footerHeight", sourceProps.footerHeight, {0.0})) {}
     
 #ifdef RN_SERIALIZABLE_STATE
 ComponentName RNSmartSheetViewProps::getDiffPropsImplementationTarget() const {
@@ -84,6 +85,10 @@ folly::dynamic RNSmartSheetViewProps::getDiffProps(
     
   if ((contentHeight != oldProps->contentHeight) && !(std::isnan(contentHeight) && std::isnan(oldProps->contentHeight))) {
     result["contentHeight"] = contentHeight;
+  }
+    
+  if ((footerHeight != oldProps->footerHeight) && !(std::isnan(footerHeight) && std::isnan(oldProps->footerHeight))) {
+    result["footerHeight"] = footerHeight;
   }
   return result;
 }

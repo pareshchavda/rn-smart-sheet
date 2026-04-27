@@ -26,6 +26,7 @@ public interface RNSmartSheetViewManagerInterface<T extends View> extends ViewMa
   void setKeyboardDismissMode(T view, @Nullable String value);
   void setSpringConfig(T view, @Nullable ReadableMap value);
   void setContentHeight(T view, double value);
+  void setFooterHeight(T view, double value);
   void snapToIndex(T view, int index);
   void snapToPosition(T view, double position);
   void expand(T view);

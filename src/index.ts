@@ -5,4 +5,5 @@ export * from './components/BottomSheetTextInput/BottomSheetTextInput';
 export * from './components/BottomSheetView/BottomSheetView';
 export * from './components/BottomSheetScrollView/BottomSheetScrollView';
 export * from './components/BottomSheetFlatList/BottomSheetFlatList';
+export * from './components/BottomSheetFooter/BottomSheetFooter';
 export * from './types';

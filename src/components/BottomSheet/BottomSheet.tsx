@@ -74,6 +74,7 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
             enableHandleComponent = true,
             handleComponent: CustomHandle,
             backdropComponent: CustomBackdrop,
+            footerComponent: FooterComponent,
             backgroundStyle,
             handleStyle,
             handleIndicatorStyle,
@@ -95,7 +96,37 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
         const hasMountedRef = useRef(false);
         const [contentHeight, setContentHeight] = useState(0);
         const [handleHeight, setHandleHeight] = useState(24);
+        const [footerHeight, setFooterHeight] = useState(0);
         const [isInternalOpen, setIsInternalOpen] = useState(index !== -1);
+
+        const handleContentLayout = useCallback(
+            (event: LayoutChangeEvent) => {
+                const nextHeight = event.nativeEvent.layout.height;
+                if (Math.abs(nextHeight - contentHeight) > 1) {
+                    setContentHeight(nextHeight);
+                }
+            },
+            [contentHeight]
+        );
+
+        const handleFooterLayout = useCallback(
+            (event: LayoutChangeEvent) => {
+                setFooterHeight(event.nativeEvent.layout.height);
+            },
+            []
+        );
+
+        const renderFooter = useMemo(() => {
+            if (!FooterComponent) {
+                return null;
+            }
+
+            return (
+                <View onLayout={handleFooterLayout}>
+                    <FooterComponent animatedFooterPosition={animatedPosition as any} />
+                </View>
+            );
+        }, [FooterComponent, animatedPosition, handleFooterLayout]);
 
         const normalizedBaseSnapPoints = useMemo(
             () => normalizeSnapPoints(snapPoints).filter((value) => value > 0),
@@ -111,7 +142,7 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
                 return null;
             }
 
-            const measuredHeight = contentHeight + (enableHandleComponent ? handleHeight : 0);
+            const measuredHeight = contentHeight + (enableHandleComponent ? handleHeight : 0) + footerHeight;
             if (measuredHeight <= 0) {
                 return null;
             }
@@ -124,6 +155,7 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
             enableDynamicSizing,
             enableHandleComponent,
             handleHeight,
+            footerHeight,
             maxDynamicContentSize,
         ]);
 
@@ -449,16 +481,6 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
             resolvedSnapPoints.length,
         ]);
 
-        const handleContentLayout = useCallback(
-            (event: LayoutChangeEvent) => {
-                const nextHeight = event.nativeEvent.layout.height;
-                if (Math.abs(nextHeight - contentHeight) > 1) {
-                    setContentHeight(nextHeight);
-                }
-            },
-            [contentHeight]
-        );
-
         const handleNativeChange = useCallback((event: any) => {
             const { index: nextIndex, position } = event.nativeEvent;
             if (nextIndex === -1) {
@@ -549,6 +571,7 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
                             <View onLayout={handleContentLayout} style={contentContainerStyle}>
                                 {children}
                             </View>
+                            {renderFooter}
                         </View>
                     </Animated.View>
                 </View>
