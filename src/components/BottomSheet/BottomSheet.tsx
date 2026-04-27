@@ -511,7 +511,7 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
                     >
                         <View style={[styles.background, backgroundStyle]}>
                             {renderHandle}
-                            <View style={contentContainerStyle}>
+                            <View onLayout={handleContentLayout} style={contentContainerStyle}>
                                 {children}
                             </View>
                         </View>
