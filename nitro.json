@@ -1,0 +1,23 @@
+{
+  "$schema": "https://nitro.margelo.com/nitro.schema.json",
+  "cxxNamespace": ["smartsheet"],
+  "ios": {
+    "iosModuleName": "RNSmartSheet"
+  },
+  "android": {
+    "androidNamespace": ["com", "rnsmartsheet"],
+    "androidCxxLibName": "RNSmartSheet"
+  },
+  "autolinking": {
+    "SmartSheetHelper": {
+      "ios": {
+        "language": "swift",
+        "implementationClassName": "HybridSmartSheetHelper"
+      },
+      "android": {
+        "language": "kotlin",
+        "implementationClassName": "com.rnsmartsheet.HybridSmartSheetHelper"
+      }
+    }
+  }
+}

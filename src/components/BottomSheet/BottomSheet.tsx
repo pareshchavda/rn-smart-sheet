@@ -27,6 +27,17 @@ import { getClosestSnapPoint, normalizeSnapPoints, normalizeSnapPoint } from '..
 import { BottomSheetBackdrop } from '../BottomSheetBackdrop';
 import { BottomSheetHandle } from '../BottomSheetHandle';
 import RNSmartSheetView, { Commands } from '../../specs/SmartSheetNativeComponent';
+import { findNodeHandle } from 'react-native';
+import { NitroModules } from 'react-native-nitro-modules';
+import type { SmartSheetHelper } from '../../specs/SmartSheetHelper.nitro';
+
+const smartSheetHelper = (() => {
+    try {
+        return NitroModules.createHybridObject<SmartSheetHelper>('SmartSheetHelper');
+    } catch (e) {
+        return null;
+    }
+})();
 
 const isNativeComponentAvailable = (name: string) => {
     return (
@@ -264,11 +275,14 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
                 setIsInternalOpen(true);
             }
             if (IS_NATIVE_AVAILABLE && nativeViewRef.current) {
-                console.log('BottomSheet: sending snapToIndex to native');
+                const viewTag = findNodeHandle(nativeViewRef.current);
+                if (viewTag != null && smartSheetHelper != null) {
+                    smartSheetHelper.snapToIndex(viewTag, targetIndex);
+                    return;
+                }
                 Commands.snapToIndex(nativeViewRef.current, targetIndex);
                 return;
             }
-            console.log('BottomSheet: falling back to JS animateToIndex');
             animateToIndex(targetIndex, true);
         }, [animateToIndex]);
 
@@ -302,6 +316,11 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
         const snapToPosition = useCallback((position: number) => {
             console.log('BottomSheet: snapToPosition() called with position:', position);
             if (IS_NATIVE_AVAILABLE && nativeViewRef.current) {
+                const viewTag = findNodeHandle(nativeViewRef.current);
+                if (viewTag != null && smartSheetHelper != null) {
+                    smartSheetHelper.snapToPosition(viewTag, position);
+                    return;
+                }
                 Commands.snapToPosition(nativeViewRef.current, position);
                 return;
             }
@@ -317,16 +336,24 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
             console.warn('BottomSheet: expand() called');
             setIsInternalOpen(true);
             if (IS_NATIVE_AVAILABLE && nativeViewRef.current) {
-                console.warn('BottomSheet: sending expand to native');
+                const viewTag = findNodeHandle(nativeViewRef.current);
+                if (viewTag != null && smartSheetHelper != null) {
+                    smartSheetHelper.snapToIndex(viewTag, resolvedSnapPoints.length - 1);
+                    return;
+                }
                 Commands.expand(nativeViewRef.current);
                 return;
             }
-            console.warn('BottomSheet: falling back to JS expand (animateToIndex)');
             animateToIndex(resolvedSnapPoints.length - 1, true);
         }, [animateToIndex, resolvedSnapPoints.length]);
 
         const collapse = useCallback(() => {
             if (IS_NATIVE_AVAILABLE && nativeViewRef.current) {
+                const viewTag = findNodeHandle(nativeViewRef.current);
+                if (viewTag != null && smartSheetHelper != null) {
+                    smartSheetHelper.snapToIndex(viewTag, 0);
+                    return;
+                }
                 Commands.collapse(nativeViewRef.current);
                 return;
             }
@@ -336,7 +363,11 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
         const close = useCallback(() => {
             console.warn('BottomSheet: close() called');
             if (IS_NATIVE_AVAILABLE && nativeViewRef.current) {
-                console.warn('BottomSheet: sending close to native');
+                const viewTag = findNodeHandle(nativeViewRef.current);
+                if (viewTag != null && smartSheetHelper != null) {
+                    smartSheetHelper.close(viewTag);
+                    return;
+                }
                 Commands.close(nativeViewRef.current);
                 return;
             }
@@ -345,6 +376,11 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
 
         const forceClose = useCallback(() => {
             if (IS_NATIVE_AVAILABLE && nativeViewRef.current) {
+                const viewTag = findNodeHandle(nativeViewRef.current);
+                if (viewTag != null && smartSheetHelper != null) {
+                    smartSheetHelper.forceClose(viewTag);
+                    return;
+                }
                 Commands.forceClose(nativeViewRef.current);
                 return;
             }

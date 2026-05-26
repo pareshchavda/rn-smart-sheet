@@ -264,7 +264,52 @@ using namespace facebook::react;
             }
         }
     }
+- (void)snapToIndex:(NSInteger)index
+{
+    if (@available(iOS 15.0, *)) {
+        UISheetPresentationController *sheet = _sheetViewController.sheetPresentationController;
+        if (sheet && sheet.detents.count > 0) {
+            if (index == -1) {
+                [_sheetViewController dismissViewControllerAnimated:YES completion:nil];
+                return;
+            }
+            
+            UISheetPresentationControllerDetent *targetDetent = nil;
+            if (index < sheet.detents.count) {
+                targetDetent = sheet.detents[index];
+            } else {
+                targetDetent = sheet.detents.lastObject;
+            }
+            [sheet animateChanges:^{
+                sheet.selectedDetentIdentifier = targetDetent.identifier;
+            }];
+        }
+    }
 }
+
+- (void)snapToPosition:(double)position
+{
+    if (@available(iOS 15.0, *)) {
+        UISheetPresentationController *sheet = _sheetViewController.sheetPresentationController;
+        if (sheet && sheet.detents.count > 0) {
+            UISheetPresentationControllerDetent *targetDetent = sheet.detents.lastObject;
+            [sheet animateChanges:^{
+                sheet.selectedDetentIdentifier = targetDetent.identifier;
+            }];
+        }
+    }
+}
+
+- (void)close
+{
+    [_sheetViewController dismissViewControllerAnimated:YES completion:nil];
+}
+
+- (void)forceClose
+{
+    [_sheetViewController dismissViewControllerAnimated:YES completion:nil];
+}
+
 
 #pragma mark - UISheetPresentationControllerDelegate
 
