@@ -20,6 +20,7 @@ import com.facebook.react.uimanager.PixelUtil
 import com.facebook.react.uimanager.UIManagerHelper
 import com.facebook.react.uimanager.events.Event
 import com.google.android.material.bottomsheet.BottomSheetBehavior
+import android.view.inputmethod.InputMethodManager
 
 class SmartSheetView(context: Context) : CoordinatorLayout(context) {
 
@@ -28,6 +29,7 @@ class SmartSheetView(context: Context) : CoordinatorLayout(context) {
     
     private var isDynamicSizingEnabled = false
     private var keyboardBehavior = "interactive"
+    private var keyboardDismissMode = "on-drag"
     private var keyboardHeight = 0
     private var snapPoints: List<Double> = emptyList()
     private var lastIndex = -1
@@ -124,6 +126,9 @@ class SmartSheetView(context: Context) : CoordinatorLayout(context) {
         behavior.addBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
             override fun onStateChanged(bottomSheet: View, newState: Int) {
                 Log.d("SmartSheetView", "onStateChanged: $newState")
+                if (newState == BottomSheetBehavior.STATE_DRAGGING && keyboardDismissMode == "on-drag") {
+                    dismissKeyboard()
+                }
                 val index = when (newState) {
                     BottomSheetBehavior.STATE_EXPANDED -> if (snapPoints.size >= 3) 2 else if (snapPoints.size == 2) 1 else 0
                     BottomSheetBehavior.STATE_HALF_EXPANDED -> 1
@@ -404,6 +409,26 @@ class SmartSheetView(context: Context) : CoordinatorLayout(context) {
 
     fun setKeyboardBehavior(behavior: String) {
         this.keyboardBehavior = behavior
+    }
+
+    fun setKeyboardDismissMode(dismissMode: String) {
+        this.keyboardDismissMode = dismissMode
+    }
+
+    private fun dismissKeyboard() {
+        val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+        imm?.hideSoftInputFromWindow(windowToken, 0)
+    }
+
+    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+        if (keyboardHeight > 0) {
+            val totalHeight = if (stableHeight > 0) stableHeight else MeasureSpec.getSize(heightMeasureSpec)
+            val targetHeight = totalHeight - keyboardHeight
+            val newHeightMeasureSpec = MeasureSpec.makeMeasureSpec(targetHeight, MeasureSpec.EXACTLY)
+            super.onMeasure(widthMeasureSpec, newHeightMeasureSpec)
+        } else {
+            super.onMeasure(widthMeasureSpec, heightMeasureSpec)
+        }
     }
 
     private class SmartSheetEvent(

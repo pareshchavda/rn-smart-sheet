@@ -98,6 +98,8 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
         const [handleHeight, setHandleHeight] = useState(24);
         const [footerHeight, setFooterHeight] = useState(0);
         const [isInternalOpen, setIsInternalOpen] = useState(index !== -1);
+        const [keyboardHeight, setKeyboardHeight] = useState(0);
+
 
         const handleContentLayout = useCallback(
             (event: LayoutChangeEvent) => {
@@ -134,8 +136,9 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
         );
 
         const availableHeight = useMemo(() => {
-            return Math.max(0, windowHeight - topInset - bottomInset);
-        }, [bottomInset, topInset, windowHeight]);
+            const offset = IS_NATIVE_AVAILABLE ? 0 : keyboardHeight;
+            return Math.max(0, windowHeight - topInset - bottomInset - offset);
+        }, [bottomInset, topInset, windowHeight, keyboardHeight]);
 
         const dynamicSnapPoint = useMemo(() => {
             if (!enableDynamicSizing) {
@@ -269,6 +272,33 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
             animateToIndex(targetIndex, true);
         }, [animateToIndex]);
 
+        useEffect(() => {
+            if (IS_NATIVE_AVAILABLE) {
+                return;
+            }
+
+            const showSubscription = Keyboard.addListener(
+                Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+                (e) => {
+                    setKeyboardHeight(e.endCoordinates.height);
+                    if (keyboardBehavior === 'extend') {
+                        snapToIndex(resolvedSnapPoints.length - 1);
+                    }
+                }
+            );
+            const hideSubscription = Keyboard.addListener(
+                Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+                () => {
+                    setKeyboardHeight(0);
+                }
+            );
+
+            return () => {
+                showSubscription.remove();
+                hideSubscription.remove();
+            };
+        }, [keyboardBehavior, resolvedSnapPoints.length, snapToIndex]);
+
         const snapToPosition = useCallback((position: number) => {
             console.log('BottomSheet: snapToPosition() called with position:', position);
             if (IS_NATIVE_AVAILABLE && nativeViewRef.current) {
@@ -345,8 +375,10 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
                 collapse,
                 close,
                 resolvedSnapPoints,
+                keyboardBehavior,
+                keyboardDismissMode,
             }),
-            [animatedIndex, animatedPosition, snapToIndex, snapToPosition, expand, collapse, close, resolvedSnapPoints]
+            [animatedIndex, animatedPosition, snapToIndex, snapToPosition, expand, collapse, close, resolvedSnapPoints, keyboardBehavior, keyboardDismissMode]
         );
 
         const handleBackdropPress = useCallback(() => {
@@ -557,6 +589,7 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
                             {
                                 height: Math.max(1, maxSheetHeight),
                                 transform: [{ translateY: animatedPosition }],
+                                bottom: keyboardHeight,
                             },
                         ]}
                     >

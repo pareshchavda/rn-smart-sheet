@@ -1,12 +1,15 @@
 import React, { forwardRef } from 'react';
 import { StyleSheet } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
+import { useBottomSheetInternal } from '../BottomSheet/BottomSheet';
 import type { BottomSheetScrollViewProps } from '../../types';
 
 const BottomSheetScrollViewComponent = forwardRef<
     ScrollView,
     BottomSheetScrollViewProps
->(({ children, style, contentContainerStyle }, ref) => {
+>(({ children, style, contentContainerStyle, ...rest }, ref) => {
+    const { keyboardDismissMode } = useBottomSheetInternal();
+
     return (
         <ScrollView
             ref={ref}
@@ -17,6 +20,8 @@ const BottomSheetScrollViewComponent = forwardRef<
             showsVerticalScrollIndicator={true}
             nestedScrollEnabled={true}
             keyboardShouldPersistTaps="handled"
+            keyboardDismissMode={keyboardDismissMode === 'on-drag' ? 'on-drag' : 'none'}
+            {...rest}
         >
             {children}
         </ScrollView>

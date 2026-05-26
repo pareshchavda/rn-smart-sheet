@@ -1,6 +1,6 @@
 {
   "name": "rn-smart-sheet",
-  "version": "1.0.1-beta.6",
+  "version": "1.0.1-beta.8",
   "description": "A performant bottom sheet component for React Native with Reanimated 2-4 support and integrated keyboard management",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",

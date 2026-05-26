@@ -9,12 +9,32 @@
 
 using namespace facebook::react;
 
+@class RNSmartSheetViewComponentView;
+
+@interface RNSmartSheetViewController : UIViewController
+@property (nonatomic, weak) RNSmartSheetViewComponentView *componentView;
+@end
+
 @interface RNSmartSheetViewComponentView () <RCTRNSmartSheetViewViewProtocol, UISheetPresentationControllerDelegate>
+- (void)sheetViewControllerDidLayoutSubviews;
+@end
+
+@implementation RNSmartSheetViewController
+
+- (void)viewDidLayoutSubviews
+{
+    [super viewDidLayoutSubviews];
+    [self.componentView sheetViewControllerDidLayoutSubviews];
+}
+
 @end
 
 @implementation RNSmartSheetViewComponentView {
     UIViewController *_sheetViewController;
     UIView *_contentView;
+    BOOL _isKeyboardVisible;
+    CGFloat _lastSheetY;
+    NSString *_lastSelectedDetentIdentifier;
 }
 
 - (instancetype)initWithFrame:(CGRect)frame
@@ -24,7 +44,9 @@ using namespace facebook::react;
         _props = defaultProps;
 
         _contentView = [UIView new];
-        _sheetViewController = [[UIViewController alloc] init];
+        RNSmartSheetViewController *vc = [[RNSmartSheetViewController alloc] init];
+        vc.componentView = self;
+        _sheetViewController = vc;
         _sheetViewController.view = _contentView;
         _sheetViewController.modalPresentationStyle = UIModalPresentationPageSheet;
     }
@@ -61,8 +83,10 @@ using namespace facebook::react;
                 [detents addObject:[UISheetPresentationControllerDetent customDetentWithIdentifier:@"dynamic" resolver:^CGFloat(id<UISheetPresentationControllerDetentResolutionContext> context) {
                     return self->_contentView.intrinsicContentSize.height;
                 }]];
+                [detents addObject:[UISheetPresentationControllerDetent largeDetent]];
             } else {
                 [detents addObject:[UISheetPresentationControllerDetent mediumDetent]];
+                [detents addObject:[UISheetPresentationControllerDetent largeDetent]];
             }
         }
 
@@ -93,7 +117,10 @@ using namespace facebook::react;
         UIViewController *rootViewController = [self findViewController];
         if (rootViewController) {
             [rootViewController presentViewController:_sheetViewController animated:YES completion:nil];
+            [self registerKeyboardObservers];
         }
+    } else if (!self.window) {
+        [self unregisterKeyboardObservers];
     }
 }
 
@@ -136,6 +163,107 @@ using namespace facebook::react;
 {
     [super prepareForRecycle];
     [_sheetViewController dismissViewControllerAnimated:YES completion:nil];
+    [self unregisterKeyboardObservers];
+}
+
+- (void)registerKeyboardObservers
+{
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(keyboardWillShow:)
+                                                 name:UIKeyboardWillShowNotification
+                                               object:nil];
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(keyboardWillHide:)
+                                                 name:UIKeyboardWillHideNotification
+                                               object:nil];
+}
+
+- (void)unregisterKeyboardObservers
+{
+    [[NSNotificationCenter defaultCenter] removeObserver:self name:UIKeyboardWillShowNotification object:nil];
+    [[NSNotificationCenter defaultCenter] removeObserver:self name:UIKeyboardWillHideNotification object:nil];
+}
+
+- (void)keyboardWillShow:(NSNotification *)notification
+{
+    const auto &viewProps = *std::static_pointer_cast<RNSmartSheetViewProps const>(_props);
+    
+    NSDictionary *userInfo = notification.userInfo;
+    CGRect keyboardFrame = [userInfo[UIKeyboardFrameEndUserInfoKey] CGRectValue];
+    double duration = [userInfo[UIKeyboardAnimationDurationUserInfoKey] doubleValue];
+    UIViewAnimationCurve curve = (UIViewAnimationCurve)[userInfo[UIKeyboardAnimationCurveUserInfoKey] integerValue];
+    
+    CGFloat keyboardHeight = keyboardFrame.size.height;
+    
+    _isKeyboardVisible = YES;
+    _lastSheetY = [_sheetViewController.view convertPoint:CGPointZero toView:nil].y;
+    
+    if (@available(iOS 15.0, *)) {
+        UISheetPresentationController *sheet = _sheetViewController.sheetPresentationController;
+        if (sheet) {
+            _lastSelectedDetentIdentifier = sheet.selectedDetentIdentifier;
+        }
+    }
+    
+    if (viewProps.keyboardBehavior == "extend" || viewProps.keyboardBehavior == "fillParent" || viewProps.enableDynamicSizing) {
+        if (@available(iOS 15.0, *)) {
+            UISheetPresentationController *sheet = _sheetViewController.sheetPresentationController;
+            if (sheet && sheet.detents.count > 0) {
+                UISheetPresentationControllerDetent *highestDetent = sheet.detents.lastObject;
+                [sheet animateChanges:^{
+                    sheet.selectedDetentIdentifier = highestDetent.identifier;
+                }];
+            }
+        }
+    }
+    
+    [UIView animateWithDuration:duration delay:0 options:(curve << 16) animations:^{
+        CGRect bounds = self->_contentView.bounds;
+        bounds.origin.y = keyboardHeight;
+        self->_contentView.bounds = bounds;
+    } completion:nil];
+}
+
+- (void)keyboardWillHide:(NSNotification *)notification
+{
+    const auto &viewProps = *std::static_pointer_cast<RNSmartSheetViewProps const>(_props);
+    NSDictionary *userInfo = notification.userInfo;
+    double duration = [userInfo[UIKeyboardAnimationDurationUserInfoKey] doubleValue];
+    UIViewAnimationCurve curve = (UIViewAnimationCurve)[userInfo[UIKeyboardAnimationCurveUserInfoKey] integerValue];
+    
+    _isKeyboardVisible = NO;
+    _lastSheetY = 0;
+    
+    if (viewProps.keyboardBehavior == "extend" || viewProps.keyboardBehavior == "fillParent" || viewProps.enableDynamicSizing) {
+        if (@available(iOS 15.0, *)) {
+            UISheetPresentationController *sheet = _sheetViewController.sheetPresentationController;
+            if (sheet && _lastSelectedDetentIdentifier) {
+                [sheet animateChanges:^{
+                    sheet.selectedDetentIdentifier = _lastSelectedDetentIdentifier;
+                }];
+            }
+        }
+    }
+    
+    [UIView animateWithDuration:duration delay:0 options:(curve << 16) animations:^{
+        CGRect bounds = self->_contentView.bounds;
+        bounds.origin.y = 0;
+        self->_contentView.bounds = bounds;
+    } completion:nil];
+}
+
+- (void)sheetViewControllerDidLayoutSubviews
+{
+    if (_isKeyboardVisible) {
+        const auto &viewProps = *std::static_pointer_cast<RNSmartSheetViewProps const>(_props);
+        if (viewProps.keyboardDismissMode == "on-drag") {
+            CGPoint absoluteOrigin = [_sheetViewController.view convertPoint:CGPointZero toView:nil];
+            CGFloat currentY = absoluteOrigin.y;
+            if (_lastSheetY > 0 && currentY > _lastSheetY + 10) {
+                [_contentView endEditing:YES];
+            }
+        }
+    }
 }
 
 #pragma mark - UISheetPresentationControllerDelegate

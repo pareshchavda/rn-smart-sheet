@@ -4,17 +4,19 @@ import { useBottomSheetInternal } from '../BottomSheet/BottomSheet';
 
 export const BottomSheetTextInput = forwardRef<TextInput, TextInputProps>(
     ({ onFocus, onBlur, style, ...rest }, ref) => {
-        const { snapToIndex, resolvedSnapPoints } = useBottomSheetInternal();
+        const { snapToIndex, resolvedSnapPoints, keyboardBehavior } = useBottomSheetInternal();
 
         const handleFocus = useCallback(
             (e: any) => {
-                // When focused, we extend the sheet to ensure visibility
-                snapToIndex(resolvedSnapPoints.length - 1);
+                // When focused, we extend the sheet to ensure visibility if behavior is extend or fillParent
+                if (keyboardBehavior === 'extend' || keyboardBehavior === 'fillParent') {
+                    snapToIndex(resolvedSnapPoints.length - 1);
+                }
                 if (onFocus) {
                     onFocus(e);
                 }
             },
-            [onFocus, snapToIndex, resolvedSnapPoints.length]
+            [onFocus, snapToIndex, resolvedSnapPoints.length, keyboardBehavior]
         );
 
         return (

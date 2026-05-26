@@ -92,6 +92,8 @@ export interface BottomSheetContextValue {
     collapse: () => void;
     close: () => void;
     resolvedSnapPoints: number[];
+    keyboardBehavior?: KeyboardBehavior;
+    keyboardDismissMode?: KeyboardDismissMode;
 }
 
 export interface BottomSheetScrollViewProps {

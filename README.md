@@ -5,6 +5,12 @@ A high-performance, **Pure Native** bottom sheet component for React Native. Des
 [![npm version](https://img.shields.io/npm/v/rn-smart-sheet.svg)](https://www.npmjs.com/package/rn-smart-sheet)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
+## 🌐 Supported Platforms
+
+- 🤖 **Android**: Fully supported (Native via BottomSheetBehavior)
+- 🍎 **iOS**: Fully supported (Native via UISheetPresentationController with dynamic detents)
+- 💻 **Web**: Fully supported (DOM/CSS based)
+
 ## 🚀 Why Pure Native?
 
 Unlike traditional bottom sheets that rely on JavaScript listeners and the React Native bridge for keyboard handling, **rn-smart-sheet** manages everything on the native side. 
@@ -19,6 +25,9 @@ Unlike traditional bottom sheets that rely on JavaScript listeners and the React
 - ⌨️ **Deep Native Keyboard Sync** - Integrated `WindowInsets` handling in Kotlin.
 - 📐 **Stable Height Memory** - Prevents layout instability during OS-level window resizing.
 - 🔄 **Adaptive Snap Points** - Support for dynamic sizing and percentage-based snaps.
+- 📱 **Modals & Inline Sheets** - Exporting both `BottomSheet` and `BottomSheetModal` for various UX patterns.
+- 📜 **Scrollable Components** - Built-in `BottomSheetScrollView` and `BottomSheetFlatList` for dynamic content.
+- 👟 **Footer Support** - Stick components to the keyboard seamlessly with `BottomSheetFooter`.
 - 🎮 **BottomSheetTextInput** - Specialized input component for perfect focus integration.
 - 🎨 **Customizable Aesthetics** - Premium defaults with deep customization for handles and backdrops.
 
@@ -36,37 +45,56 @@ npm install react-native-reanimated react-native-gesture-handler
 
 ## 🚀 Quick Start
 
+Here is a comprehensive example using `BottomSheetModalProvider` and `BottomSheetModal`:
+
 ```tsx
 import React, { useRef } from 'react';
-import { View, Button } from 'react-native';
-import { BottomSheet, BottomSheetView, BottomSheetTextInput, BottomSheetModalProvider } from 'rn-smart-sheet';
+import { View, Button, StyleSheet } from 'react-native';
+import { 
+  BottomSheetModalProvider, 
+  BottomSheetModal, 
+  BottomSheetView, 
+  BottomSheetTextInput 
+} from 'rn-smart-sheet';
 
 const App = () => {
   const bottomSheetRef = useRef(null);
 
   return (
     <BottomSheetModalProvider>
-      <View style={{ flex: 1 }}>
+      <View style={styles.container}>
         <Button title="Open Sheet" onPress={() => bottomSheetRef.current?.expand()} />
 
-        <BottomSheet
+        <BottomSheetModal
           ref={bottomSheetRef}
           snapPoints={['25%', '50%', '90%']}
+          enablePanDownToClose={true}
         >
-          <BottomSheetView style={{ padding: 20 }}>
+          <BottomSheetView style={styles.sheetContent}>
             <BottomSheetTextInput 
               placeholder="Deep Native Focus..." 
-              style={{ borderWidth: 1, padding: 10, borderRadius: 8 }} 
+              style={styles.input} 
             />
           </BottomSheetView>
-        </BottomSheet>
+        </BottomSheetModal>
       </View>
     </BottomSheetModalProvider>
   );
 };
+
+const styles = StyleSheet.create({
+  container: { flex: 1, justifyContent: 'center' },
+  sheetContent: { padding: 20 },
+  input: { borderWidth: 1, borderColor: '#ccc', padding: 10, borderRadius: 8 }
+});
+
+export default App;
 ```
 
 ## 📖 Key Components
+
+### `BottomSheetModalProvider` & `BottomSheetModal`
+Used to display bottom sheets that appear above all other app content. Must be wrapped in `BottomSheetModalProvider`.
 
 ### `BottomSheetTextInput`
 A specialized wrapper around the standard `TextInput`. When focused, it automatically triggers the native sheet's "lift" behavior, ensuring the input stays visible above the keyboard with zero latency.
@@ -74,16 +102,24 @@ A specialized wrapper around the standard `TextInput`. When focused, it automati
 ### `BottomSheetView`
 A layout-optimized container for your sheet content. On Android, this container dynamically grows to accommodate the keyboard height.
 
+### `BottomSheetFlatList` & `BottomSheetScrollView`
+Optimized scrollable components that properly interact with the bottom sheet's pan gestures and keyboard events.
+
+### `BottomSheetFooter`
+A sticky footer component that seamlessly moves with the keyboard when an input is focused.
+
 ## 📚 API Reference
 
-### BottomSheet Props
+### BottomSheet / BottomSheetModal Props
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `snapPoints` | `SnapPoint[]` | **required** | Array of snap points (e.g., `['25%', 500]`) |
-| `index` | `number` | `0` | Initial snap index |
-| `keyboardBehavior` | `KeyboardBehavior` | `INTERACTIVE` | `INTERACTIVE` | `EXTEND` |
+| `index` | `number` | `-1` | Initial snap index (`-1` means closed for Modals) |
+| `keyboardBehavior` | `KeyboardBehavior` | `INTERACTIVE` | `INTERACTIVE` \| `EXTEND` |
 | `enableDynamicSizing` | `boolean` | `false` | Automatically adjust height to content |
+| `enablePanDownToClose` | `boolean` | `false` | Allow closing the sheet by dragging down |
+| `footerComponent` | `FC<BottomSheetFooterProps>`| `undefined` | Sticky footer component |
 
 ### Keyboard Behaviors
 - **INTERACTIVE**: The sheet stays at its current snap point and lifts the content.

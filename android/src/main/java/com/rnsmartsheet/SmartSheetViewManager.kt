@@ -104,6 +104,7 @@ class SmartSheetViewManager : ViewGroupManager<SmartSheetView>(), RNSmartSheetVi
 
     @ReactProp(name = "keyboardDismissMode")
     override fun setKeyboardDismissMode(view: SmartSheetView, value: String?) {
+        view.setKeyboardDismissMode(value ?: "on-drag")
     }
 
     @ReactProp(name = "springConfig")
