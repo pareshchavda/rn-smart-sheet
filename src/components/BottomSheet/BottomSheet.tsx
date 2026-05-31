@@ -28,16 +28,7 @@ import { BottomSheetBackdrop } from '../BottomSheetBackdrop';
 import { BottomSheetHandle } from '../BottomSheetHandle';
 import RNSmartSheetView, { Commands } from '../../specs/SmartSheetNativeComponent';
 import { findNodeHandle } from 'react-native';
-import { NitroModules } from 'react-native-nitro-modules';
 import type { SmartSheetHelper } from '../../specs/SmartSheetHelper.nitro';
-
-const smartSheetHelper = (() => {
-    try {
-        return NitroModules.createHybridObject<SmartSheetHelper>('SmartSheetHelper');
-    } catch (e) {
-        return null;
-    }
-})();
 
 const isNativeComponentAvailable = (name: string) => {
     return (
@@ -47,6 +38,18 @@ const isNativeComponentAvailable = (name: string) => {
 };
 
 const IS_NATIVE_AVAILABLE = isNativeComponentAvailable('RNSmartSheetView');
+
+const smartSheetHelper = (() => {
+    if (IS_NATIVE_AVAILABLE) {
+        try {
+            const { NitroModules } = require('react-native-nitro-modules') as typeof import('react-native-nitro-modules');
+            return NitroModules.createHybridObject<SmartSheetHelper>('SmartSheetHelper');
+        } catch (e) {
+            return null;
+        }
+    }
+    return null;
+})();
 
 const DEFAULT_ANIMATION_CONFIG = {
     damping: 30,
