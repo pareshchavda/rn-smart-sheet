@@ -12,6 +12,7 @@
     "android",
     "ios",
     "react-native.config.js",
+    "RNSmartSheet.podspec",
     "README.md",
     "LICENSE"
   ],
@@ -34,12 +35,16 @@
     "ios",
     "android"
   ],
-  "author": "",
+  "author": "Paresh Chavda",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": ""
+    "url": "git+https://github.com/pareshchavda/rn-smart-sheet.git"
   },
+  "bugs": {
+    "url": "https://github.com/pareshchavda/rn-smart-sheet/issues"
+  },
+  "homepage": "https://github.com/pareshchavda/rn-smart-sheet#readme",
   "codegenConfig": {
     "name": "RNSmartSheetSpec",
     "type": "all",

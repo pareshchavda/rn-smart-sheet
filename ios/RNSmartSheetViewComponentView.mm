@@ -264,6 +264,8 @@ using namespace facebook::react;
             }
         }
     }
+}
+
 - (void)snapToIndex:(NSInteger)index
 {
     if (@available(iOS 15.0, *)) {

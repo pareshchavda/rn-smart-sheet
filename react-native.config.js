@@ -5,7 +5,7 @@ module.exports = {
         sourceDir: './android',
       },
       ios: {
-        podspecPath: './ios/RNSmartSheet.podspec',
+        podspecPath: './RNSmartSheet.podspec',
       },
     },
   },
