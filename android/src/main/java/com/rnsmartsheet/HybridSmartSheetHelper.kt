@@ -34,12 +34,7 @@ class HybridSmartSheetHelper : HybridSmartSheetHelperSpec() {
                 Log.d("SmartSheetHelper", "snapToIndex: view is ${if (view != null) "non-null" else "null"}")
                 view?.post {
                     Log.d("SmartSheetHelper", "snapToIndex post: setting state for index ${index.toInt()}")
-                    when (index.toInt()) {
-                        -1 -> view.behavior.state = BottomSheetBehavior.STATE_HIDDEN
-                        0 -> view.behavior.state = BottomSheetBehavior.STATE_COLLAPSED
-                        1 -> view.behavior.state = BottomSheetBehavior.STATE_HALF_EXPANDED
-                        else -> view.behavior.state = BottomSheetBehavior.STATE_EXPANDED
-                    }
+                    view.behavior.state = view.getNativeStateForIndex(index.toInt())
                     view.requestLayout()
                 }
             }

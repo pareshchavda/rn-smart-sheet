@@ -124,12 +124,7 @@ class SmartSheetViewManager : ViewGroupManager<SmartSheetView>(), RNSmartSheetVi
     override fun snapToIndex(view: SmartSheetView, index: Int) {
         Log.d(REACT_CLASS, "snapToIndex: $index")
         view.post {
-            when (index) {
-                -1 -> view.behavior.state = BottomSheetBehavior.STATE_HIDDEN
-                0 -> view.behavior.state = BottomSheetBehavior.STATE_COLLAPSED
-                1 -> view.behavior.state = BottomSheetBehavior.STATE_HALF_EXPANDED
-                else -> view.behavior.state = BottomSheetBehavior.STATE_EXPANDED
-            }
+            view.behavior.state = view.getNativeStateForIndex(index)
             view.requestLayout()
         }
     }

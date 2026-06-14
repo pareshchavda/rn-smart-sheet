@@ -456,6 +456,31 @@ class SmartSheetView(context: Context) : CoordinatorLayout(context) {
         }
     }
 
+    fun getNativeStateForIndex(index: Int): Int {
+        if (index == -1) {
+            return BottomSheetBehavior.STATE_HIDDEN
+        }
+        if (isDynamicSizingEnabled) {
+            return BottomSheetBehavior.STATE_EXPANDED
+        }
+        val size = snapPoints.size
+        if (size <= 1 || index == 0) {
+            return BottomSheetBehavior.STATE_COLLAPSED
+        }
+        if (size == 2) {
+            return if (index == 1) {
+                BottomSheetBehavior.STATE_EXPANDED
+            } else {
+                BottomSheetBehavior.STATE_COLLAPSED
+            }
+        }
+        // size >= 3
+        return when (index) {
+            1 -> BottomSheetBehavior.STATE_HALF_EXPANDED
+            else -> BottomSheetBehavior.STATE_EXPANDED
+        }
+    }
+
     private fun emitEvent(name: String, eventData: WritableMap) {
         try {
             val reactContext = context as? ReactContext ?: return

@@ -119,6 +119,15 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
         const modalContext = React.useContext(BottomSheetModalContext);
         const uniqueId = useId();
 
+        const onChangeRef = useRef(onChange);
+        onChangeRef.current = onChange;
+
+        const onAnimateRef = useRef(onAnimate);
+        onAnimateRef.current = onAnimate;
+
+        const animationConfigRef = useRef(animationConfig);
+        animationConfigRef.current = animationConfig;
+
         const closeRef = useRef<() => void>(undefined);
         const closeSelf = useCallback(() => {
             console.warn(`[BottomSheet] closeSelf callback triggered on uniqueId=${uniqueId}`);
@@ -253,9 +262,9 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
             currentIndexRef.current = targetIndex;
             animatedIndex.setValue(targetIndex);
             animatedPosition.setValue(position);
-            onChange?.(targetIndex);
+            onChangeRef.current?.(targetIndex);
             setIsInternalOpen(targetIndex !== -1);
-        }, [animatedIndex, animatedPosition, onChange, uniqueId]);
+        }, [animatedIndex, animatedPosition, uniqueId]);
 
         const animateToIndex = useCallback((
             targetIndex: number,
@@ -285,25 +294,23 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
             }
 
             if (fromIndex !== clampedIndex) {
-                onAnimate?.(fromIndex, clampedIndex);
+                onAnimateRef.current?.(fromIndex, clampedIndex);
             }
 
             Animated.spring(animatedPosition, {
                 toValue: nextPosition,
                 useNativeDriver: true,
                 ...DEFAULT_ANIMATION_CONFIG,
-                ...animationConfig,
+                ...animationConfigRef.current,
             }).start(({ finished }) => {
                 if (finished) {
                     finishAtIndex(clampedIndex, nextPosition);
                 }
             });
         }, [
-            animationConfig,
             animatedPosition,
             finishAtIndex,
             getPositionForIndex,
-            onAnimate,
             resolvedSnapPoints.length,
             useNativeDriver,
         ]);
@@ -600,8 +607,10 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
                 const targetIndex = clamp(currentIndexRef.current, -1, resolvedSnapPoints.length - 1);
                 const shouldAnimate = currentPositionRef.current === 9999;
                 animateToIndex(targetIndex, shouldAnimate);
+            } else {
+                animatedPosition.setValue(maxSheetHeight);
             }
-        }, [resolvedSnapPoints, maxSheetHeight, animateToIndex]);
+        }, [resolvedSnapPoints, maxSheetHeight, animateToIndex, animatedPosition]);
 
         const handleNativeChange = useCallback((event: any) => {
             const { index: nextIndex, position } = event.nativeEvent;
