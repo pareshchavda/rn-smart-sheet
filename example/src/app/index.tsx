@@ -1,11 +1,11 @@
-import React, { useRef, useMemo, useState } from 'react';
+import React, { useRef, useMemo, useState, useCallback } from 'react';
 import { Platform, StyleSheet, TextInput, View, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Device from 'expo-device';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import { BottomTabInset, MaxContentWidth, Spacing, Colors } from '@/constants/theme';
 import { BottomSheetModal, BottomSheetView, KeyboardBehavior, BottomSheetTextInput, BottomSheetFlatList, BottomSheetFooter } from 'rn-smart-sheet';
 import type { BottomSheetMethods, BottomSheetFooterProps } from 'rn-smart-sheet';
 
@@ -15,31 +15,41 @@ interface CustomFooterProps extends BottomSheetFooterProps {
   onSend: () => void;
 }
 
-const CommentFooter = (props: CustomFooterProps) => (
-  <BottomSheetFooter {...props} style={styles.footerContainer}>
-    <View style={styles.commentInputContainer}>
-      <BottomSheetTextInput 
-        placeholder="Write a comment..."
-        style={styles.commentInput}
-        placeholderTextColor="#8E8E93"
-        value={props.value}
-        onChangeText={props.onChangeText}
-      />
-      <Pressable 
-        style={({ pressed }) => [
-          styles.sendButton,
-          { opacity: pressed || !props.value.trim() ? 0.6 : 1 }
-        ]}
-        onPress={props.onSend}
-        disabled={!props.value.trim()}
-      >
-        <ThemedText style={{ color: '#FFF', fontWeight: 'bold' }}>Send</ThemedText>
-      </Pressable>
-    </View>
-  </BottomSheetFooter>
-);
+const CommentFooter = (props: CustomFooterProps) => {
+  return (
+    <BottomSheetFooter {...props} style={[styles.footerContainer, { backgroundColor: Colors.light.background, borderTopColor: Colors.light.backgroundSelected }]}>
+      <View style={styles.commentInputContainer}>
+        <BottomSheetTextInput 
+          placeholder="Write a comment..."
+          style={[
+            styles.commentInput,
+            { 
+              color: Colors.light.text, 
+              backgroundColor: Colors.light.backgroundElement,
+              borderColor: Colors.light.backgroundSelected
+            }
+          ]}
+          placeholderTextColor={Colors.light.textSecondary}
+          value={props.value}
+          onChangeText={props.onChangeText}
+        />
+        <Pressable 
+          style={({ pressed }) => [
+            styles.sendButton,
+            { opacity: pressed || !props.value.trim() ? 0.6 : 1 }
+          ]}
+          onPress={props.onSend}
+          disabled={!props.value.trim()}
+        >
+          <ThemedText style={{ color: '#FFF', fontWeight: 'bold' }}>Send</ThemedText>
+        </Pressable>
+      </View>
+    </BottomSheetFooter>
+  );
+};
 
 export default function HomeScreen() {
+  const theme = Colors.light;
   const basicSheetRef = useRef<BottomSheetMethods>(null);
   const chatSheetRef = useRef<BottomSheetMethods>(null);
   const dynamicSheetRef = useRef<BottomSheetMethods>(null);
@@ -165,27 +175,27 @@ export default function HomeScreen() {
           </View>
         </ThemedView>
 
-        <ThemedView style={styles.configSection}>
+        <ThemedView style={[styles.configSection, { borderTopColor: theme.backgroundSelected }]}>
           <ThemedText type="small">Keyboard Strategy:</ThemedText>
           <View style={styles.row}>
             <Pressable 
               onPress={() => setKeyboardBehavior(KeyboardBehavior.INTERACTIVE)}
               style={[
                 styles.smallButton,
-                { backgroundColor: keyboardBehavior === KeyboardBehavior.INTERACTIVE ? '#007AFF' : '#E5E7EB' }
+                { backgroundColor: keyboardBehavior === KeyboardBehavior.INTERACTIVE ? '#007AFF' : theme.backgroundElement }
               ]}
             >
-              <ThemedText style={{ color: keyboardBehavior === KeyboardBehavior.INTERACTIVE ? '#FFF' : '#374151', fontSize: 12 }}>Interactive</ThemedText>
+              <ThemedText style={{ color: keyboardBehavior === KeyboardBehavior.INTERACTIVE ? '#FFF' : theme.textSecondary, fontSize: 12 }}>Interactive</ThemedText>
             </Pressable>
             
             <Pressable 
               onPress={() => setKeyboardBehavior(KeyboardBehavior.EXTEND)}
               style={[
                 styles.smallButton,
-                { backgroundColor: keyboardBehavior === KeyboardBehavior.EXTEND ? '#007AFF' : '#E5E7EB' }
+                { backgroundColor: keyboardBehavior === KeyboardBehavior.EXTEND ? '#007AFF' : theme.backgroundElement }
               ]}
             >
-              <ThemedText style={{ color: keyboardBehavior === KeyboardBehavior.EXTEND ? '#FFF' : '#374151', fontSize: 12 }}>Extend</ThemedText>
+              <ThemedText style={{ color: keyboardBehavior === KeyboardBehavior.EXTEND ? '#FFF' : theme.textSecondary, fontSize: 12 }}>Extend</ThemedText>
             </Pressable>
           </View>
         </ThemedView>
@@ -197,6 +207,8 @@ export default function HomeScreen() {
           snapPoints={['25%', '50%', '75%']}
           keyboardBehavior={keyboardBehavior}
           enablePanDownToClose={true}
+          backgroundStyle={{ backgroundColor: theme.background }}
+          handleIndicatorStyle={{ backgroundColor: theme.textSecondary }}
         >
           <BottomSheetView style={styles.contentContainer}>
             <ThemedText type="subtitle">🎉 Basic Sheet</ThemedText>
@@ -205,8 +217,15 @@ export default function HomeScreen() {
             </ThemedText>
             <BottomSheetTextInput 
               placeholder="Focus me..."
-              style={styles.input}
-              placeholderTextColor="#8E8E93"
+              style={[
+                styles.input,
+                { 
+                  color: theme.text, 
+                  backgroundColor: theme.backgroundElement,
+                  borderColor: theme.backgroundSelected
+                }
+              ]}
+              placeholderTextColor={theme.textSecondary}
             />
             <Pressable 
               onPress={() => basicSheetRef.current?.close()}
@@ -224,16 +243,18 @@ export default function HomeScreen() {
           snapPoints={['50%', '90%']}
           keyboardBehavior={keyboardBehavior}
           enablePanDownToClose={true}
+          backgroundStyle={{ backgroundColor: theme.background }}
+          handleIndicatorStyle={{ backgroundColor: theme.textSecondary }}
         >
           <View style={styles.chatContainer}>
-            <ThemedText type="subtitle" style={styles.chatHeader}>💬 Chat Example</ThemedText>
+            <ThemedText type="subtitle" style={[styles.chatHeader, { borderBottomColor: theme.backgroundSelected }]}>💬 Chat Example</ThemedText>
             <View style={styles.chatListContainer}>
               <BottomSheetView style={{ flex: 1 }}>
                 <BottomSheetFlatList
                   data={chatData}
                   keyExtractor={(item) => item.id.toString()}
                   renderItem={({ item }) => (
-                    <View style={styles.chatMessage}>
+                    <View style={[styles.chatMessage, { backgroundColor: theme.backgroundElement }]}>
                       <ThemedText>{item.text}</ThemedText>
                     </View>
                   )}
@@ -243,11 +264,18 @@ export default function HomeScreen() {
                 />
               </BottomSheetView>
             </View>
-            <View style={styles.chatInputContainer}>
+            <View style={[styles.chatInputContainer, { backgroundColor: theme.background, borderTopColor: theme.backgroundSelected }]}>
               <BottomSheetTextInput 
                 placeholder="Type a message..."
-                style={styles.input}
-                placeholderTextColor="#8E8E93"
+                style={[
+                  styles.input,
+                  { 
+                    color: theme.text, 
+                    backgroundColor: theme.backgroundElement,
+                    borderColor: theme.backgroundSelected
+                  }
+                ]}
+                placeholderTextColor={theme.textSecondary}
               />
             </View>
           </View>
@@ -261,6 +289,8 @@ export default function HomeScreen() {
           enableDynamicSizing={true}
           keyboardBehavior={keyboardBehavior}
           enablePanDownToClose={true}
+          backgroundStyle={{ backgroundColor: theme.background }}
+          handleIndicatorStyle={{ backgroundColor: theme.textSecondary }}
         >
           <BottomSheetView style={styles.contentContainer}>
             <ThemedText type="subtitle">⚡ Dynamic Sheet</ThemedText>
@@ -269,14 +299,21 @@ export default function HomeScreen() {
             </ThemedText>
             <BottomSheetTextInput 
               placeholder="Focus me..."
-              style={styles.input}
-              placeholderTextColor="#8E8E93"
+              style={[
+                styles.input,
+                { 
+                  color: theme.text, 
+                  backgroundColor: theme.backgroundElement,
+                  borderColor: theme.backgroundSelected
+                }
+              ]}
+              placeholderTextColor={theme.textSecondary}
             />
             <View style={styles.dynamicContent}>
               <ThemedText>
                 Adding more content to show off the dynamic resizing capabilities...
               </ThemedText>
-              <View style={styles.placeholderBox} />
+              <View style={[styles.placeholderBox, { backgroundColor: theme.backgroundElement, borderColor: theme.backgroundSelected }]} />
               <ThemedText>
                 Even with all this content, the keyboard avoidance remains perfect!
               </ThemedText>
@@ -296,12 +333,14 @@ export default function HomeScreen() {
           index={-1}
           snapPoints={['50%', '80%']}
           enablePanDownToClose={true}
+          backgroundStyle={{ backgroundColor: theme.background }}
+          handleIndicatorStyle={{ backgroundColor: theme.textSecondary }}
         >
           <BottomSheetView style={styles.contentContainer}>
             <ThemedText type="subtitle">👥 Contacts</ThemedText>
             {contacts.map(contact => (
               <View key={contact.id} style={styles.contactRow}>
-                <View style={styles.avatar} />
+                <View style={[styles.avatar, { backgroundColor: theme.backgroundSelected }]} />
                 <View>
                   <ThemedText style={{ fontWeight: 'bold' }}>{contact.name}</ThemedText>
                   <ThemedText type="small">{contact.status}</ThemedText>
@@ -323,20 +362,22 @@ export default function HomeScreen() {
           index={-1}
           snapPoints={['40%']}
           enablePanDownToClose={true}
+          backgroundStyle={{ backgroundColor: theme.background }}
+          handleIndicatorStyle={{ backgroundColor: theme.textSecondary }}
         >
           <BottomSheetView style={styles.contentContainer}>
             <ThemedText type="subtitle">⚙️ Settings</ThemedText>
-            <View style={styles.settingItem}>
+            <View style={[styles.settingItem, { borderBottomColor: theme.backgroundSelected }]}>
               <ThemedText>Notifications</ThemedText>
-              <View style={styles.placeholderSwitch} />
+              <View style={[styles.placeholderSwitch, { backgroundColor: theme.backgroundSelected }]} />
             </View>
-            <View style={styles.settingItem}>
+            <View style={[styles.settingItem, { borderBottomColor: theme.backgroundSelected }]}>
               <ThemedText>Dark Mode</ThemedText>
               <View style={[styles.placeholderSwitch, { backgroundColor: '#007AFF' }]} />
             </View>
-            <View style={styles.settingItem}>
+            <View style={[styles.settingItem, { borderBottomColor: theme.backgroundSelected }]}>
               <ThemedText>Privacy Mode</ThemedText>
-              <View style={styles.placeholderSwitch} />
+              <View style={[styles.placeholderSwitch, { backgroundColor: theme.backgroundSelected }]} />
             </View>
             <Pressable 
               onPress={() => settingsSheetRef.current?.close()}
@@ -353,14 +394,16 @@ export default function HomeScreen() {
           snapPoints={['60%', '95%']}
           enablePanDownToClose={true}
           footerComponent={renderCommentFooter}
+          backgroundStyle={{ backgroundColor: theme.background }}
+          handleIndicatorStyle={{ backgroundColor: theme.textSecondary }}
         >
           <View style={styles.chatContainer}>
-            <ThemedText type="subtitle" style={styles.chatHeader}>💬 Comments</ThemedText>
+            <ThemedText type="subtitle" style={[styles.chatHeader, { borderBottomColor: theme.backgroundSelected }]}>💬 Comments</ThemedText>
             <BottomSheetFlatList
               data={comments}
               keyExtractor={(item) => item.id.toString()}
               renderItem={({ item }) => (
-                <View style={[styles.chatMessage, { alignSelf: 'stretch', maxWidth: '100%' }]}>
+                <View style={[styles.chatMessage, { alignSelf: 'stretch', maxWidth: '100%', backgroundColor: theme.backgroundElement }]}>
                   <ThemedText style={{ fontWeight: 'bold' }}>{item.user}</ThemedText>
                   <ThemedText>{item.text}</ThemedText>
                 </View>

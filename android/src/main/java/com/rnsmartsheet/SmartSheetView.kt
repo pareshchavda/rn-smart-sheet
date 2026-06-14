@@ -68,22 +68,28 @@ class SmartSheetView(context: Context) : CoordinatorLayout(context) {
         return super.dispatchTouchEvent(ev)
     }
 
-    private var initialY = 0f
+    private var initialY = -1f
     override fun onInterceptTouchEvent(ev: android.view.MotionEvent): Boolean {
         if (!behavior.isDraggable) return super.onInterceptTouchEvent(ev)
 
         when (ev.actionMasked) {
             android.view.MotionEvent.ACTION_DOWN -> initialY = ev.rawY
             android.view.MotionEvent.ACTION_MOVE -> {
+                if (initialY < 0) {
+                    initialY = ev.rawY
+                }
                 val deltaY = ev.rawY - initialY
                 if (deltaY > 0) { // Pulling down
                     // Check if we have a scrollable child and if it's NOT at the top
-                    val scrollableChild = findScrollableChildUnder(ev.x, ev.y)
+                    val scrollableChild = findScrollableChildUnder(ev.rawX, ev.rawY)
                     if (scrollableChild != null && scrollableChild.canScrollVertically(-1)) {
                         // The list is scrolled, so let it handle the pull down
                         return false 
                     }
                 }
+            }
+            android.view.MotionEvent.ACTION_UP, android.view.MotionEvent.ACTION_CANCEL -> {
+                initialY = -1f
             }
         }
         return super.onInterceptTouchEvent(ev)
@@ -288,6 +294,8 @@ class SmartSheetView(context: Context) : CoordinatorLayout(context) {
         val currentHeight = if (forcedHeight > 0) forcedHeight else visibleHeight.toFloat()
         if (currentHeight <= 0) return
 
+        val currentState = behavior.state
+
         if (snapPoints.isNotEmpty()) {
             val maxPoint = snapPoints.last().toInt()
             
@@ -350,6 +358,10 @@ class SmartSheetView(context: Context) : CoordinatorLayout(context) {
             }
         } else if (isDynamicSizingEnabled) {
             updateDynamicHeight()
+        }
+
+        if (currentState == BottomSheetBehavior.STATE_HIDDEN) {
+            behavior.state = BottomSheetBehavior.STATE_HIDDEN
         }
     }
 

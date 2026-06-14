@@ -1,5 +1,5 @@
 import type { ReactNode, RefObject, ComponentType } from 'react';
-import { Animated, type ViewStyle, type StyleProp, type FlatListProps } from 'react-native';
+import { Animated, type ViewStyle, type StyleProp, type FlatListProps, type ScrollViewProps } from 'react-native';
 
 export type WithSpringConfig = Record<string, any>;
 
@@ -79,6 +79,8 @@ export interface BottomSheetHandleProps {
 
 export interface BottomSheetFooterProps {
     animatedFooterPosition: Animated.Value;
+    animatedIndex: Animated.Value;
+    animatedPosition: Animated.Value;
     children?: ReactNode;
     style?: StyleProp<ViewStyle>;
 }
@@ -96,10 +98,7 @@ export interface BottomSheetContextValue {
     keyboardDismissMode?: KeyboardDismissMode;
 }
 
-export interface BottomSheetScrollViewProps {
-    children?: ReactNode;
-    style?: StyleProp<ViewStyle>;
-    contentContainerStyle?: StyleProp<ViewStyle>;
+export interface BottomSheetScrollViewProps extends ScrollViewProps {
     focusHook?: RefObject<any>;
 }
 

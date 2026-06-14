@@ -2,11 +2,13 @@ import React, {
     forwardRef,
     useCallback,
     useEffect,
+    useId,
     useImperativeHandle,
     useMemo,
     useRef,
     useState,
 } from 'react';
+import { BottomSheetModalContext } from '../BottomSheetModalProvider/BottomSheetModalProvider';
 import {
     Animated,
     Keyboard,
@@ -103,7 +105,7 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
     ) => {
         const { height: windowHeight } = useWindowDimensions();
         const animatedIndex = useRef(new Animated.Value(index)).current;
-        const animatedPosition = useRef(new Animated.Value(0)).current;
+        const animatedPosition = useRef(new Animated.Value(9999)).current;
         const currentIndexRef = useRef(index);
         const currentPositionRef = useRef(0);
         const dragStartPositionRef = useRef(0);
@@ -113,6 +115,24 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
         const [footerHeight, setFooterHeight] = useState(0);
         const [isInternalOpen, setIsInternalOpen] = useState(index !== -1);
         const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+        const modalContext = React.useContext(BottomSheetModalContext);
+        const uniqueId = useId();
+
+        const closeRef = useRef<() => void>(undefined);
+        const closeSelf = useCallback(() => {
+            console.warn(`[BottomSheet] closeSelf callback triggered on uniqueId=${uniqueId}`);
+            closeRef.current?.();
+        }, [uniqueId]);
+
+        useEffect(() => {
+            console.warn(`[BottomSheet] context effect uniqueId=${uniqueId}, isInternalOpen=${isInternalOpen}, modalContext=${!!modalContext}`);
+            if (isInternalOpen && modalContext) {
+                modalContext.onOpen(uniqueId, closeSelf);
+            } else if (!isInternalOpen && modalContext) {
+                modalContext.onClose(uniqueId);
+            }
+        }, [isInternalOpen, modalContext, uniqueId, closeSelf]);
 
 
         const handleContentLayout = useCallback(
@@ -139,10 +159,14 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
 
             return (
                 <View onLayout={handleFooterLayout}>
-                    <FooterComponent animatedFooterPosition={animatedPosition as any} />
+                    <FooterComponent 
+                        animatedFooterPosition={animatedPosition as any} 
+                        animatedIndex={animatedIndex}
+                        animatedPosition={animatedPosition}
+                    />
                 </View>
             );
-        }, [FooterComponent, animatedPosition, handleFooterLayout]);
+        }, [FooterComponent, animatedIndex, animatedPosition, handleFooterLayout]);
 
         const normalizedBaseSnapPoints = useMemo(
             () => normalizeSnapPoints(snapPoints).filter((value) => value > 0),
@@ -225,21 +249,35 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
         }, [closedPosition, maxSheetHeight, resolvedSnapPoints]);
 
         const finishAtIndex = useCallback((targetIndex: number, position: number) => {
+            console.warn(`[BottomSheet] finishAtIndex uniqueId=${uniqueId}. targetIndex=${targetIndex}, position=${position}`);
             currentIndexRef.current = targetIndex;
             animatedIndex.setValue(targetIndex);
             animatedPosition.setValue(position);
             onChange?.(targetIndex);
-        }, [animatedIndex, animatedPosition, onChange]);
+            setIsInternalOpen(targetIndex !== -1);
+        }, [animatedIndex, animatedPosition, onChange, uniqueId]);
 
         const animateToIndex = useCallback((
             targetIndex: number,
             animated: boolean = true
         ) => {
+            console.warn(`[BottomSheet] animateToIndex uniqueId=${uniqueId}. targetIndex=${targetIndex}, resolvedSnapPoints=${JSON.stringify(resolvedSnapPoints)}, maxSheetHeight=${maxSheetHeight}, closedPosition=${closedPosition}`);
+            if (resolvedSnapPoints.length === 0 && enableDynamicSizing) {
+                console.warn(`[BottomSheet] animateToIndex initial dynamic layout branch uniqueId=${uniqueId}`);
+                setIsInternalOpen(true);
+                finishAtIndex(0, 9999);
+                return;
+            }
+
             const clampedIndex = clamp(targetIndex, -1, resolvedSnapPoints.length - 1);
             const nextPosition = getPositionForIndex(clampedIndex);
             const fromIndex = currentIndexRef.current;
 
             animatedPosition.stopAnimation();
+
+            if (clampedIndex !== -1) {
+                setIsInternalOpen(true);
+            }
 
             if (!animated || !useNativeDriver) {
                 finishAtIndex(clampedIndex, nextPosition);
@@ -274,9 +312,7 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
 
         const snapToIndex = useCallback((targetIndex: number) => {
             console.warn('BottomSheet: snapToIndex() called with index:', targetIndex);
-            if (targetIndex !== -1) {
-                setIsInternalOpen(true);
-            }
+            setIsInternalOpen(targetIndex !== -1);
             if (IS_NATIVE_AVAILABLE && nativeViewRef.current) {
                 const viewTag = findNodeHandle(nativeViewRef.current);
                 if (viewTag != null && smartSheetHelper != null) {
@@ -336,7 +372,7 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
         }, [animateToIndex, resolvedSnapPoints]);
 
         const expand = useCallback(() => {
-            console.warn('BottomSheet: expand() called');
+            console.warn(`[BottomSheet] expand() called on uniqueId=${uniqueId}. resolvedSnapPoints.length=${resolvedSnapPoints.length}, enableDynamicSizing=${enableDynamicSizing}`);
             setIsInternalOpen(true);
             if (IS_NATIVE_AVAILABLE && nativeViewRef.current) {
                 const viewTag = findNodeHandle(nativeViewRef.current);
@@ -347,8 +383,11 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
                 Commands.expand(nativeViewRef.current);
                 return;
             }
-            animateToIndex(resolvedSnapPoints.length - 1, true);
-        }, [animateToIndex, resolvedSnapPoints.length]);
+            const targetIndex = resolvedSnapPoints.length === 0 && enableDynamicSizing
+                ? 0
+                : resolvedSnapPoints.length - 1;
+            animateToIndex(targetIndex, true);
+        }, [animateToIndex, resolvedSnapPoints.length, enableDynamicSizing, uniqueId]);
 
         const collapse = useCallback(() => {
             if (IS_NATIVE_AVAILABLE && nativeViewRef.current) {
@@ -366,6 +405,7 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
         const close = useCallback(() => {
             console.warn('BottomSheet: close() called');
             if (IS_NATIVE_AVAILABLE && nativeViewRef.current) {
+                setIsInternalOpen(false);
                 const viewTag = findNodeHandle(nativeViewRef.current);
                 if (viewTag != null && smartSheetHelper != null) {
                     smartSheetHelper.close(viewTag);
@@ -377,8 +417,11 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
             animateToIndex(-1, true);
         }, [animateToIndex]);
 
+        closeRef.current = close;
+
         const forceClose = useCallback(() => {
             if (IS_NATIVE_AVAILABLE && nativeViewRef.current) {
+                setIsInternalOpen(false);
                 const viewTag = findNodeHandle(nativeViewRef.current);
                 if (viewTag != null && smartSheetHelper != null) {
                     smartSheetHelper.forceClose(viewTag);
@@ -387,6 +430,7 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
                 Commands.forceClose(nativeViewRef.current);
                 return;
             }
+            setIsInternalOpen(false);
             animatedPosition.stopAnimation();
             finishAtIndex(-1, closedPosition);
         }, [animatedPosition, closedPosition, finishAtIndex]);
@@ -533,24 +577,31 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
         );
 
 
-        useEffect(() => {
-            if (maxSheetHeight <= 0) {
-                animatedPosition.setValue(0);
-                animatedIndex.setValue(-1);
-                return;
-            }
+        const prevIndexRef = useRef(index);
 
-            const targetIndex = clamp(index, -1, resolvedSnapPoints.length - 1);
-            animateToIndex(targetIndex, hasMountedRef.current);
-            hasMountedRef.current = true;
-        }, [
-            animateToIndex,
-            animatedIndex,
-            animatedPosition,
-            index,
-            maxSheetHeight,
-            resolvedSnapPoints.length,
-        ]);
+        useEffect(() => {
+            if (!hasMountedRef.current) {
+                if (maxSheetHeight > 0) {
+                    const targetIndex = clamp(index, -1, resolvedSnapPoints.length - 1);
+                    animateToIndex(targetIndex, false);
+                    hasMountedRef.current = true;
+                }
+            } else if (prevIndexRef.current !== index) {
+                prevIndexRef.current = index;
+                const targetIndex = clamp(index, -1, resolvedSnapPoints.length - 1);
+                animateToIndex(targetIndex, true);
+            }
+        }, [index, maxSheetHeight, resolvedSnapPoints.length, animateToIndex]);
+
+        useEffect(() => {
+            if (!hasMountedRef.current) return;
+            
+            if (currentIndexRef.current !== -1) {
+                const targetIndex = clamp(currentIndexRef.current, -1, resolvedSnapPoints.length - 1);
+                const shouldAnimate = currentPositionRef.current === 9999;
+                animateToIndex(targetIndex, shouldAnimate);
+            }
+        }, [resolvedSnapPoints, maxSheetHeight, animateToIndex]);
 
         const handleNativeChange = useCallback((event: any) => {
             const { index: nextIndex, position } = event.nativeEvent;
@@ -603,7 +654,7 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
                             contentHeight={contentHeight}
                             footerHeight={footerHeight}
                         >
-                            <View style={[styles.background, backgroundStyle]}>
+                            <View style={[styles.background, backgroundStyle, !enableDynamicSizing && { flex: 1 }]}>
                                 {renderHandle}
                                 <View onLayout={handleContentLayout} style={contentContainerStyle}>
                                     {children}
@@ -626,9 +677,9 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
                             styles.sheet,
                             style,
                             {
-                                height: Math.max(1, maxSheetHeight),
+                                height: enableDynamicSizing ? undefined : Math.max(1, maxSheetHeight),
                                 transform: [{ translateY: animatedPosition }],
-                                bottom: keyboardHeight,
+                                bottom: Platform.OS === 'ios' ? keyboardHeight : 0,
                             },
                         ]}
                     >
@@ -636,10 +687,11 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
                             style={[
                                 styles.background,
                                 backgroundStyle,
+                                !enableDynamicSizing && { flex: 1 },
                                 { maxHeight: availableHeight || windowHeight },
                             ]}
                         >
-                        {renderHandle}
+                            {renderHandle}
                             <View onLayout={handleContentLayout} style={contentContainerStyle}>
                                 {children}
                             </View>
@@ -670,7 +722,6 @@ const styles = StyleSheet.create({
         zIndex: 1000,
     },
     background: {
-        flex: 1,
         backgroundColor: '#FFFFFF',
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,

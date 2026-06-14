@@ -2,12 +2,14 @@ import React, { createContext, useCallback, useContext, useMemo, useState } from
 import { View, StyleSheet } from 'react-native';
 import type { BottomSheetModalProviderProps } from '../../types';
 
-interface BottomSheetModalContextType {
+export interface BottomSheetModalContextType {
     mount: (key: string, node: React.ReactNode) => void;
     unmount: (key: string) => void;
+    onOpen: (key: string, closeSelf: () => void) => void;
+    onClose: (key: string) => void;
 }
 
-const BottomSheetModalContext = createContext<BottomSheetModalContextType | null>(null);
+export const BottomSheetModalContext = createContext<BottomSheetModalContextType | null>(null);
 
 export const useBottomSheetModalInternal = () => {
     const context = useContext(BottomSheetModalContext);
@@ -19,12 +21,14 @@ export const useBottomSheetModalInternal = () => {
 
 export const BottomSheetModalProvider: React.FC<BottomSheetModalProviderProps> = ({ children }) => {
     const [modals, setModals] = useState<Record<string, React.ReactNode>>({});
+    const openSheetsRef = React.useRef<Record<string, () => void>>({});
 
     const mount = useCallback((key: string, node: React.ReactNode) => {
         setModals((prev) => ({ ...prev, [key]: node }));
     }, []);
 
     const unmount = useCallback((key: string) => {
+        delete openSheetsRef.current[key];
         setModals((prev) => {
             const next = { ...prev };
             delete next[key];
@@ -32,7 +36,20 @@ export const BottomSheetModalProvider: React.FC<BottomSheetModalProviderProps> =
         });
     }, []);
 
-    const contextValue = useMemo(() => ({ mount, unmount }), [mount, unmount]);
+    const onOpen = useCallback((key: string, closeSelf: () => void) => {
+        openSheetsRef.current[key] = closeSelf;
+        Object.entries(openSheetsRef.current).forEach(([k, closeFn]) => {
+            if (k !== key) {
+                closeFn();
+            }
+        });
+    }, []);
+
+    const onClose = useCallback((key: string) => {
+        delete openSheetsRef.current[key];
+    }, []);
+
+    const contextValue = useMemo(() => ({ mount, unmount, onOpen, onClose }), [mount, unmount, onOpen, onClose]);
 
     return (
         <BottomSheetModalContext.Provider value={contextValue}>
@@ -48,7 +65,7 @@ export const BottomSheetModalProvider: React.FC<BottomSheetModalProviderProps> =
 
 const styles = StyleSheet.create({
     container: {
-        ...StyleSheet.absoluteFillObject,
+        flex: 1,
         overflow: 'visible',
     },
 });

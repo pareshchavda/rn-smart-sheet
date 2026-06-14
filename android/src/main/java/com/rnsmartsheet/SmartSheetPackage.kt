@@ -8,13 +8,26 @@ import com.facebook.react.module.model.ReactModuleInfoProvider
 import com.facebook.react.uimanager.ViewManager
 import com.margelo.nitro.com.rnsmartsheet.RNSmartSheetOnLoad
 
+import java.lang.ref.WeakReference
+
 class SmartSheetPackage : TurboReactPackage() {
+    companion object {
+        private var reactContextRef = WeakReference<ReactApplicationContext>(null)
+        
+        val reactContext: ReactApplicationContext?
+            get() = reactContextRef.get()
+            
+        private fun setContext(context: ReactApplicationContext) {
+            reactContextRef = WeakReference(context)
+        }
+    }
 
     init {
         RNSmartSheetOnLoad.initializeNative()
     }
 
     override fun getModule(name: String, reactContext: ReactApplicationContext): NativeModule? {
+        setContext(reactContext)
         return if (name == SmartSheetModule.NAME) {
             SmartSheetModule(reactContext)
         } else {
@@ -39,6 +52,7 @@ class SmartSheetPackage : TurboReactPackage() {
     }
 
     override fun createViewManagers(reactContext: ReactApplicationContext): List<ViewManager<*, *>> {
+        setContext(reactContext)
         return listOf(SmartSheetViewManager())
     }
 }
