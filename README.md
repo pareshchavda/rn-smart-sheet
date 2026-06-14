@@ -10,6 +10,11 @@ A high-performance, **Pure Native** bottom sheet component for React Native. Des
 - 🤖 **Android**: Fully supported (Native via BottomSheetBehavior)
 - 🍎 **iOS**: Fully supported (Native via UISheetPresentationController with dynamic detents)
 - 💻 **Web**: Fully supported (DOM/CSS based)
+- 🚀 **Expo Go**: Supported out-of-the-box (automatically falls back to pure JS mode when native custom views are unavailable)
+
+### 📱 Expo Go & Custom Development Builds
+* **Expo Go**: If running inside the standard Expo Go client, `rn-smart-sheet` automatically detects that the custom native module is not packaged and falls back to a fully-featured, pure JavaScript implementation powered by `react-native-reanimated` and `react-native-gesture-handler`.
+* **Development Builds**: For peak performance and native sheet/keyboard sync on Android/iOS, build a custom development build (e.g. `npx expo run:android` or `npx expo run:ios`). The library will automatically load the high-performance native CoordinatorLayout views.
 
 ## 🚀 Why Pure Native?
 
@@ -25,6 +30,8 @@ Unlike traditional bottom sheets that rely on JavaScript listeners and the React
 - ⌨️ **Deep Native Keyboard Sync** - Integrated `WindowInsets` handling in Kotlin.
 - 📐 **Stable Height Memory** - Prevents layout instability during OS-level window resizing.
 - 🔄 **Adaptive Snap Points** - Support for dynamic sizing and percentage-based snaps.
+- 🥞 **Modal Stacking & Auto-Dismissal** - Out-of-the-box portal stack management. Opening any bottom sheet automatically closes and cleans up previously open sheets in the viewport.
+- 🔒 **Nested Scroll Coordination** - Built-in lock-step sync for `BottomSheetScrollView` and `BottomSheetFlatList`. Scrolling is programmatically locked while pulling the sheet and unlocks automatically when fully expanded.
 - 📱 **Modals & Inline Sheets** - Exporting both `BottomSheet` and `BottomSheetModal` for various UX patterns.
 - 📜 **Scrollable Components** - Built-in `BottomSheetScrollView` and `BottomSheetFlatList` for dynamic content.
 - 👟 **Footer Support** - Stick components to the keyboard seamlessly with `BottomSheetFooter`.

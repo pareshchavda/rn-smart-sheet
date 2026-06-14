@@ -177,9 +177,14 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
             );
         }, [FooterComponent, animatedIndex, animatedPosition, handleFooterLayout]);
 
+        const serializedSnapPoints = JSON.stringify(snapPoints);
+        const memoizedSnapPoints = useMemo(() => {
+            return snapPoints;
+        }, [serializedSnapPoints]);
+
         const normalizedBaseSnapPoints = useMemo(
-            () => normalizeSnapPoints(snapPoints).filter((value) => value > 0),
-            [snapPoints]
+            () => normalizeSnapPoints(memoizedSnapPoints).filter((value) => value > 0),
+            [memoizedSnapPoints]
         );
 
         const availableHeight = useMemo(() => {
@@ -622,13 +627,13 @@ const BottomSheetComponent = forwardRef<BottomSheetMethods, BottomSheetProps>(
             currentIndexRef.current = nextIndex;
             animatedIndex.setValue(nextIndex);
             animatedPosition.setValue(position);
-            onChange?.(nextIndex);
-        }, [animatedIndex, animatedPosition, onChange]);
+            onChangeRef.current?.(nextIndex);
+        }, [animatedIndex, animatedPosition]);
 
         const handleNativeAnimate = useCallback((event: any) => {
             const { fromIndex, toIndex } = event.nativeEvent;
-            onAnimate?.(fromIndex, toIndex);
-        }, [onAnimate]);
+            onAnimateRef.current?.(fromIndex, toIndex);
+        }, []);
 
         const handleNativePositionChange = useCallback((event: any) => {
             const { position } = event.nativeEvent;
