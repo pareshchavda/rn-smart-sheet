@@ -21,6 +21,7 @@ import com.facebook.react.uimanager.UIManagerHelper
 import com.facebook.react.uimanager.events.Event
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import android.view.inputmethod.InputMethodManager
+import android.view.ViewTreeObserver
 
 class SmartSheetView(context: Context) : CoordinatorLayout(context) {
 
@@ -35,6 +36,16 @@ class SmartSheetView(context: Context) : CoordinatorLayout(context) {
     private var lastIndex = -1
     private var stableHeight = 0
     private var isInteracting = false
+
+    private val focusChangeListener = ViewTreeObserver.OnGlobalFocusChangeListener { _, newFocus ->
+        Log.d("SmartSheetView", "onGlobalFocusChanged: newFocus=$newFocus, isChild=${if (newFocus != null) isChildOf(newFocus, sheetContainer) else "false"}")
+        if (newFocus != null && isChildOf(newFocus, sheetContainer)) {
+            Log.d("SmartSheetView", "Focus detected in sheet! Lifting...")
+            if (behavior.state != BottomSheetBehavior.STATE_EXPANDED) {
+                behavior.state = BottomSheetBehavior.STATE_EXPANDED
+            }
+        }
+    }
 
     init {
         // Setup the container with the BottomSheetBehavior
@@ -211,16 +222,6 @@ class SmartSheetView(context: Context) : CoordinatorLayout(context) {
             }
         }
         ViewCompat.setWindowInsetsAnimationCallback(this, callback)
-
-        // Listen for focus changes in ANY child view (Native or React)
-        this.viewTreeObserver.addOnGlobalFocusChangeListener { _, newFocus ->
-            if (newFocus != null && isChildOf(newFocus, sheetContainer)) {
-                Log.d("SmartSheetView", "Focus detected in sheet! Lifting...")
-                if (behavior.state != BottomSheetBehavior.STATE_EXPANDED) {
-                    behavior.state = BottomSheetBehavior.STATE_EXPANDED
-                }
-            }
-        }
     }
 
     private fun isChildOf(view: View, parent: View): Boolean {
@@ -498,6 +499,20 @@ class SmartSheetView(context: Context) : CoordinatorLayout(context) {
             super.addView(child, index, params)
         } else {
             sheetContainer.addView(child, index, params)
+        }
+    }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        this.viewTreeObserver.addOnGlobalFocusChangeListener(focusChangeListener)
+    }
+
+    override fun onDetachedFromWindow() {
+        super.onDetachedFromWindow()
+        try {
+            this.viewTreeObserver.removeOnGlobalFocusChangeListener(focusChangeListener)
+        } catch (e: Exception) {
+            Log.e("SmartSheetView", "Error removing focus change listener", e)
         }
     }
 }
